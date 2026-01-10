@@ -10,6 +10,7 @@ document.addEventListener("DOMContentLoaded", () => {
   startBtn.addEventListener("click", () => {
     // スタート画面を完全に消す（Safari対策）
     startScreen.remove();
+    document.getElementById("gameScreen").classList.remove("hidden");
     startGame();
   });
 
@@ -72,6 +73,7 @@ document.addEventListener("DOMContentLoaded", () => {
     lock = false;
   }
 });
+
 
 
 
