@@ -6,6 +6,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const meow = new Audio("meow.wav");
   const meowLong = new Audio("meow_long.wav");
+  const beep = document.getElementById("beep");
+  const meowStart = document.getElementById("meowStart");
 
   let startTime = 0;
   let firstCard = null;
@@ -26,14 +28,23 @@ document.addEventListener("DOMContentLoaded", () => {
     <div class="countdown">${count}</div>
   `;
 
+  beep.currentTime = 0;
+  beep.play();
+
   const timer = setInterval(() => {
     count--;
 
     if (count === 0) {
       clearInterval(timer);
+      meowStart.currentTime = 0;
+      meowStart.play();
+      
       startGame();
     } else {
       document.querySelector(".countdown").textContent = count;
+
+      beep.currentTime = 0;
+      beep.play();
     }
   }, 1000);
 }
@@ -141,6 +152,7 @@ document.addEventListener("DOMContentLoaded", () => {
 }
 
 });
+
 
 
 
