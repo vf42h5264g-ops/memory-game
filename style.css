@@ -48,6 +48,25 @@ body {
 }
 
 
+.clearScreen {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  height: 100vh;
+  text-align: center;
+}
+
+.clearScreen button {
+  margin-top: 20px;
+  font-size: 20px;
+  padding: 12px 24px;
+  border-radius: 10px;
+}
+
+
 
 
 
