@@ -47,6 +47,10 @@ body {
   object-fit: cover;
 }
 
+#gameScreen {
+  display: block;
+}
+
 
 
 
