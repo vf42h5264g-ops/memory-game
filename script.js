@@ -123,7 +123,24 @@ document.addEventListener("DOMContentLoaded", () => {
     .addEventListener("click", startCountdown);
 }
 
+  function launchConfetti() {
+  for (let i = 0; i < 80; i++) {
+    const confetti = document.createElement("div");
+    confetti.className = "confetti";
+
+    confetti.style.left = Math.random() * 100 + "vw";
+    confetti.style.backgroundColor =
+      ["#ff0", "#0ff", "#f0f", "#0f0", "#f00"][Math.floor(Math.random() * 5)];
+    confetti.style.animationDuration = 2 + Math.random() * 2 + "s";
+
+    document.body.appendChild(confetti);
+
+    setTimeout(() => confetti.remove(), 4000);
+  }
+}
+
 });
+
 
 
 
