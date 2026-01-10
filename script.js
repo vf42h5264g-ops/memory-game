@@ -80,6 +80,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (firstCard.dataset.name === secondCard.dataset.name) {
       meow.play();
+
+      firstCard.classList.add("matched");
+      secondCard.classList.add("matched");
+
       matchedCount += 2;
       resetTurn();
 
@@ -120,6 +124,7 @@ document.addEventListener("DOMContentLoaded", () => {
 }
 
 });
+
 
 
 
