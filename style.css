@@ -108,6 +108,31 @@ body {
   }
 }
 
+.modeSelect {
+  display: flex;
+  gap: 20px;
+}
+
+.modeSelect button {
+  font-size: 24px;
+  padding: 20px;
+}
+
+.result {
+  position: fixed;
+  inset: 0;
+  background: #000c;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: white;
+}
+
+.result.bad h1 {
+  color: red;
+}
+
 
 
 
