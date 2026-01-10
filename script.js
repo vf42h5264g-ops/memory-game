@@ -110,9 +110,16 @@ document.addEventListener("DOMContentLoaded", () => {
       
       setTimeout(() => {
         firstCard.querySelector("img").src = "img/back.jpg";
-        firstCard.classList.add("shake");
         secondCard.querySelector("img").src = "img/back.jpg";
+
+        firstCard.classList.add("shake");
         secondCard.classList.add("shake");
+
+      setTimeout(() => {
+      firstCard.classList.remove("shake");
+      secondCard.classList.remove("shake");
+    }, 300);
+
         resetTurn();
       }, 1000);
     }
@@ -160,6 +167,7 @@ document.addEventListener("DOMContentLoaded", () => {
 }
 
 });
+
 
 
 
