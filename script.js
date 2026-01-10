@@ -20,14 +20,25 @@ document.addEventListener("DOMContentLoaded", () => {
 　let missCount = 0;
 
 
-  startBtn.addEventListener("click", () => {
-    meowStart.currentTime = 0;
-    meowStart.play();
-    
+  document.querySelectorAll(".modeSelect button").forEach(btn => {
+  btn.addEventListener("click", () => {
+    mode = btn.dataset.mode;
+
+    if (mode === "easy") {
+      maxMiss = Infinity;
+    } else if (mode === "normal") {
+      maxMiss = Infinity;
+    } else if (mode === "hard") {
+      maxMiss = 5;
+    }
+
+    missCount = 0;
     startScreen.classList.add("hidden");
     gameScreen.classList.remove("hidden");
     startCountdown();
   });
+});
+
 
   function startCountdown() {
   let count = 3;
@@ -182,6 +193,7 @@ document.addEventListener("DOMContentLoaded", () => {
 }
 
 });
+
 
 
 
