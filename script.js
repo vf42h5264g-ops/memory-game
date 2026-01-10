@@ -4,14 +4,12 @@ document.addEventListener("DOMContentLoaded", () => {
   const gameScreen = document.getElementById("gameScreen");
   const board = document.getElementById("board");
 
-  startBtn.addEventListener("click", () => {
-    console.log("START 押された"); // デバッグ用
+startBtn.addEventListener("click", () => {
+  startScreen.classList.add("hidden");
+  gameScreen.classList.remove("hidden");
+  startGame();
+});
 
-    startScreen.style.display = "none";   // ← classじゃなく直接消す
-    gameScreen.style.display = "block";   // ← 確実に表示
-
-    startGame();
-  });
 
   function startGame() {
     board.innerHTML = "";
@@ -35,6 +33,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 });
+
 
 
 
