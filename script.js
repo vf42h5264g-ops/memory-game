@@ -120,10 +120,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
   document
     .getElementById("restartBtn")
-    .addEventListener("click", startGame);
+    .addEventListener("click", startCountdown);
 }
 
 });
+
 
 
 
