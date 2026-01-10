@@ -105,11 +105,14 @@ document.addEventListener("DOMContentLoaded", () => {
     } else {
 
       missSound.currentTime = 0;
+      missSound.volume = 0.4;
       missSound.play();
       
       setTimeout(() => {
         firstCard.querySelector("img").src = "img/back.jpg";
+        firstCard.classList.add("shake");
         secondCard.querySelector("img").src = "img/back.jpg";
+        secondCard.classList.add("shake");
         resetTurn();
       }, 1000);
     }
@@ -157,6 +160,7 @@ document.addEventListener("DOMContentLoaded", () => {
 }
 
 });
+
 
 
 
