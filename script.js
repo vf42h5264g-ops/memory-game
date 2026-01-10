@@ -24,7 +24,7 @@ document.addEventListener("DOMContentLoaded", () => {
     firstCard = null;
     secondCard = null;
 
-    const images = ["001", "002", "003", "004", "005"];
+    const images = ["001", "002", "003", "004", "005","006"];
     const cards = [...images, ...images].sort(() => Math.random() - 0.5);
 
     cards.forEach((name) => {
@@ -61,7 +61,7 @@ document.addEventListener("DOMContentLoaded", () => {
       matchedCount += 2;
       resetTurn();
 
-      if (matchedCount === 10) {
+      if (matchedCount === 12) {
         setTimeout(showClear, 500);
       }
     } else {
@@ -91,6 +91,7 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById("restartBtn").addEventListener("click", startGame);
   }
 });
+
 
 
 
