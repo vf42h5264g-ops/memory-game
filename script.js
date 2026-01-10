@@ -8,6 +8,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const meowLong = new Audio("meow_long.wav");
   const beep = document.getElementById("beep");
   const meowStart = document.getElementById("meowStart");
+  const soundMiss = new Audio("meow_miss.wav");
 
   let startTime = 0;
   let firstCard = null;
@@ -102,6 +103,10 @@ document.addEventListener("DOMContentLoaded", () => {
         setTimeout(showClear, 500);
       }
     } else {
+
+      missSound.currentTime = 0;
+      missSound.play();
+      
       setTimeout(() => {
         firstCard.querySelector("img").src = "img/back.jpg";
         secondCard.querySelector("img").src = "img/back.jpg";
@@ -152,6 +157,7 @@ document.addEventListener("DOMContentLoaded", () => {
 }
 
 });
+
 
 
 
