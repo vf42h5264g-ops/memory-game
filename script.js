@@ -7,6 +7,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const meow = new Audio("meow.wav");
   const meowLong = new Audio("meow_long.wav");
 
+  let startTime = 0;
   let firstCard = null;
   let secondCard = null;
   let lock = false;
@@ -15,14 +16,35 @@ document.addEventListener("DOMContentLoaded", () => {
   startBtn.addEventListener("click", () => {
     startScreen.classList.add("hidden");
     gameScreen.classList.remove("hidden");
-    startGame();
+    startCountdown();
   });
+
+  function startCountdown() {
+  let count = 3;
+
+  board.innerHTML = `
+    <div class="countdown">${count}</div>
+  `;
+
+  const timer = setInterval(() => {
+    count--;
+
+    if (count === 0) {
+      clearInterval(timer);
+      startGame();
+    } else {
+      document.querySelector(".countdown").textContent = count;
+    }
+  }, 1000);
+}
 
   function startGame() {
     board.innerHTML = "";
     matchedCount = 0;
     firstCard = null;
     secondCard = null;
+
+    startTime = Date.now();
 
     const images = ["001", "002", "003", "004", "005","006"];
     const cards = [...images, ...images].sort(() => Math.random() - 0.5);
@@ -98,6 +120,7 @@ document.addEventListener("DOMContentLoaded", () => {
 }
 
 });
+
 
 
 
