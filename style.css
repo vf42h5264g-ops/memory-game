@@ -66,6 +66,14 @@ body {
   border-radius: 10px;
 }
 
+.countdown {
+  grid-column: 1 / -1;
+  font-size: 80px;
+  color: white;
+  text-align: center;
+  margin-top: 40vh;
+}
+
 
 
 
