@@ -72,31 +72,38 @@ document.addEventListener("DOMContentLoaded", () => {
 }
 
 
-  function startGame() {
-    board.innerHTML = "";
-    matchedCount = 0;
-    firstCard = null;
-    secondCard = null;
+function startGame() {
+  board.innerHTML = "";
+  matchedCount = 0;
+  missCount = 0;
 
-    startTime = Date.now();
+  let images;
 
-    const images = ["001", "002", "003", "004", "005","006"];
-    const cards = [...images, ...images].sort(() => Math.random() - 0.5);
-
-    cards.forEach((name) => {
-      const card = document.createElement("div");
-      card.className = "card";
-      card.dataset.name = name;
-
-      const img = document.createElement("img");
-      img.src = "img/back.jpg";
-
-      card.appendChild(img);
-      board.appendChild(card);
-
-      card.addEventListener("click", () => flipCard(card, img));
-    });
+  if (mode === "easy") {
+    images = ["001", "002", "003"];
+  } else {
+    images = ["001", "002", "003", "004", "005", "006"];
   }
+
+  const cards = [...images, ...images].sort(() => Math.random() - 0.5);
+
+  cards.forEach(name => {
+    const card = document.createElement("div");
+    card.className = "card";
+    card.dataset.name = name;
+
+    const img = document.createElement("img");
+    img.src = "img/back.jpg";
+
+    card.appendChild(img);
+    board.appendChild(card);
+
+    card.addEventListener("click", () => {
+      flipCard(card, img);
+    });
+  });
+}
+
 
   function flipCard(card, img) {
     if (lockBoard) return;
@@ -146,10 +153,31 @@ document.addEventListener("DOMContentLoaded", () => {
       secondCard.classList.remove("shake");
     }, 300);
 
+      missCount++;
+
+if (mode === "hard" && missCount >= maxMiss) {
+  setTimeout(showBadEnd, 500);
+  return;
+}
+
+
         resetTurn();
       }, 1000);
     }
   }
+
+  function showBadEnd() {
+  lockBoard = true;
+  board.innerHTML = `
+    <div class="result bad">
+      <h1>BAD END</h1>
+      <button onclick="restart()">もう一回</button>
+    </div>
+  `;
+}
+  function restart() {
+  startCountdown();
+}
 
   function resetTurn() {
     firstCard = null;
@@ -193,6 +221,7 @@ document.addEventListener("DOMContentLoaded", () => {
 }
 
 });
+
 
 
 
