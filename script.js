@@ -88,8 +88,10 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     secondCard = card;
-    lock = true;
-
+    checkForMatch();
+  ｝
+    
+　function checkForMatch() {
     if (firstCard.dataset.name === secondCard.dataset.name) {
       meow.play();
 
@@ -169,6 +171,7 @@ document.addEventListener("DOMContentLoaded", () => {
 }
 
 });
+
 
 
 
