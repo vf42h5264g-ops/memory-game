@@ -80,17 +80,25 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function showClear() {
-    meowLong.play();
-    board.innerHTML = `
-      <div style="color:white;text-align:center;width:100%">
-        <h1>PERFECT!!</h1>
-        <button id="restartBtn">もう一回</button>
-      </div>
-    `;
+  meowLong.play();
 
-    document.getElementById("restartBtn").addEventListener("click", startGame);
-  }
+  const clearTime = ((Date.now() - startTime) / 1000).toFixed(1);
+
+  board.innerHTML = `
+    <div class="clearScreen">
+      <h1>PERFECT!!</h1>
+      <p>TIME : ${clearTime} sec</p>
+      <button id="restartBtn">もう1回</button>
+    </div>
+  `;
+
+  document
+    .getElementById("restartBtn")
+    .addEventListener("click", startGame);
+}
+
 });
+
 
 
 
