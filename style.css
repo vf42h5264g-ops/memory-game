@@ -1,31 +1,50 @@
-  body {
-  background: red !important;
-}
-boby{
+body {
   margin: 0;
+  font-family: sans-serif;
   background: #222;
-  color: white;
 }
 
-/* START画面 */
-#startScreen {
-  width: 100vw;
-  height: 100vh;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-
-/* STARTボタン */
-.startBtn {
-  background: orange;
-  padding: 20px 40px;
-  font-size: 30px;
-  border-radius: 12px;
-}
-
-/* 非表示 */
+/* 画面切り替え */
 .hidden {
   display: none;
 }
+
+/* スタート画面 */
+#startScreen {
+  position: fixed;
+  inset: 0;
+  background: #111;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#startBtn {
+  font-size: 32px;
+  padding: 20px 40px;
+  background: orange;
+  border: none;
+  border-radius: 12px;
+}
+
+/* ゲーム盤 */
+#board {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  padding: 10px;
+}
+
+/* カード */
+.card {
+  aspect-ratio: 1 / 1;
+}
+
+.card img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+
 
