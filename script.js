@@ -1,21 +1,28 @@
 document.addEventListener("DOMContentLoaded", () => {
   const startBtn = document.getElementById("startBtn");
   const startScreen = document.getElementById("startScreen");
+  const gameScreen = document.getElementById("gameScreen");
   const board = document.getElementById("board");
+
+  const meow = new Audio("meow.wav");
+  const meowLong = new Audio("meow_long.wav");
 
   let firstCard = null;
   let secondCard = null;
   let lock = false;
+  let matchedCount = 0;
 
   startBtn.addEventListener("click", () => {
-    // スタート画面を完全に消す（Safari対策）
-    startScreen.remove();
-    document.getElementById("gameScreen").classList.remove("hidden");
+    startScreen.classList.add("hidden");
+    gameScreen.classList.remove("hidden");
     startGame();
   });
 
   function startGame() {
     board.innerHTML = "";
+    matchedCount = 0;
+    firstCard = null;
+    secondCard = null;
 
     const images = ["001", "002", "003", "004", "005"];
     const cards = [...images, ...images].sort(() => Math.random() - 0.5);
@@ -31,39 +38,38 @@ document.addEventListener("DOMContentLoaded", () => {
       card.appendChild(img);
       board.appendChild(card);
 
-      card.addEventListener("click", () => {
-        if (lock) return;
-        if (card === firstCard) return;
-
-        img.src = `img/${name}.jpg`;
-
-        if (!firstCard) {
-          firstCard = card;
-          return;
-        }
-
-        secondCard = card;
-        lock = true;
-
-        checkMatch();
-      });
+      card.addEventListener("click", () => flipCard(card, img));
     });
   }
 
-  function checkMatch() {
-    const img1 = firstCard.querySelector("img");
-    const img2 = secondCard.querySelector("img");
+  function flipCard(card, img) {
+    if (lock) return;
+    if (card === firstCard) return;
+
+    img.src = `img/${card.dataset.name}.jpg`;
+
+    if (!firstCard) {
+      firstCard = card;
+      return;
+    }
+
+    secondCard = card;
+    lock = true;
 
     if (firstCard.dataset.name === secondCard.dataset.name) {
-      // ペア成立
+      meow.play();
+      matchedCount += 2;
       resetTurn();
+
+      if (matchedCount === 10) {
+        setTimeout(showClear, 500);
+      }
     } else {
-      // 外れ → 少し見せて戻す
       setTimeout(() => {
-        img1.src = "img/back.jpg";
-        img2.src = "img/back.jpg";
+        firstCard.querySelector("img").src = "img/back.jpg";
+        secondCard.querySelector("img").src = "img/back.jpg";
         resetTurn();
-      }, 800);
+      }, 1000);
     }
   }
 
@@ -72,7 +78,21 @@ document.addEventListener("DOMContentLoaded", () => {
     secondCard = null;
     lock = false;
   }
+
+  function showClear() {
+    meowLong.play();
+    board.innerHTML = `
+      <div style="color:white;text-align:center;width:100%">
+        <h1>PERFECT!!</h1>
+        <button id="restartBtn">もう一回</button>
+      </div>
+    `;
+
+    document.getElementById("restartBtn").addEventListener("click", startGame);
+  }
 });
+
+
 
 
 
