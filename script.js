@@ -77,7 +77,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function flipCard(card, img) {
-    if (lock) return;
+    if (lockBoard) return;
     if (card === firstCard) return;
 
     img.src = `img/${card.dataset.name}.jpg`;
@@ -104,6 +104,8 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     } else {
 
+      lockBoard = true; 
+      
       missSound.currentTime = 0;
       missSound.volume = 0.4;
       missSound.play();
@@ -128,7 +130,7 @@ document.addEventListener("DOMContentLoaded", () => {
   function resetTurn() {
     firstCard = null;
     secondCard = null;
-    lock = false;
+    lockBoard = false;
   }
 
   function showClear() {
@@ -167,6 +169,7 @@ document.addEventListener("DOMContentLoaded", () => {
 }
 
 });
+
 
 
 
