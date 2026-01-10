@@ -15,6 +15,10 @@ document.addEventListener("DOMContentLoaded", () => {
   let secondCard = null;
   let lock = false;
   let matchedCount = 0;
+  let mode = "normal";
+　let maxMiss = Infinity;
+　let missCount = 0;
+
 
   startBtn.addEventListener("click", () => {
     meowStart.currentTime = 0;
@@ -178,6 +182,7 @@ document.addEventListener("DOMContentLoaded", () => {
 }
 
 });
+
 
 
 
