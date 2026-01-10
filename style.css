@@ -68,11 +68,12 @@ body {
 
 .countdown {
   grid-column: 1 / -1;
-  font-size: 80px;
-  color: white;
+  font-size: 90px;
+  color: yellow;
   text-align: center;
   margin-top: 40vh;
 }
+
 
 .card.matched {
   animation: pop 0.4s ease-out;
@@ -106,6 +107,7 @@ body {
     transform: translateY(110vh) rotate(360deg);
   }
 }
+
 
 
 
