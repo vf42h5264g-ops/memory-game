@@ -1,3 +1,5 @@
+alert("script.js 読み込まれた");
+
 document.addEventListener("DOMContentLoaded", () => {
   const startBtn = document.getElementById("startBtn");
   const startScreen = document.getElementById("startScreen");
@@ -25,6 +27,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 });
+
 
 
 
