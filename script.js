@@ -17,6 +17,9 @@ document.addEventListener("DOMContentLoaded", () => {
   let matchedCount = 0;
 
   startBtn.addEventListener("click", () => {
+    meowStart.currentTime = 0;
+    meowStart.play();
+    
     startScreen.classList.add("hidden");
     gameScreen.classList.remove("hidden");
     startCountdown();
@@ -24,10 +27,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function startCountdown() {
   let count = 3;
+  lockBoard = true;
 
-  board.innerHTML = `
-    <div class="countdown">${count}</div>
-  `;
+  board.innerHTML = `<div class="countdown">${count}</div>`;
 
   beep.currentTime = 0;
   beep.play();
@@ -37,10 +39,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (count === 0) {
       clearInterval(timer);
+
+      // 最後の「にゃ！」
       meowStart.currentTime = 0;
       meowStart.play();
-      
-      startGame();
+
+      board.innerHTML = "";   // カウント表示を消す
+      startGame();            // カード生成
+      lockBoard = false;      // ★これが無いとカード死亡
     } else {
       document.querySelector(".countdown").textContent = count;
 
@@ -49,6 +55,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }, 1000);
 }
+
 
   function startGame() {
     board.innerHTML = "";
@@ -171,6 +178,7 @@ document.addEventListener("DOMContentLoaded", () => {
 }
 
 });
+
 
 
 
