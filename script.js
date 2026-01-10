@@ -107,6 +107,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function showClear() {
   meowLong.play();
+  launchConfetti();
 
   const clearTime = ((Date.now() - startTime) / 1000).toFixed(1);
 
@@ -140,6 +141,7 @@ document.addEventListener("DOMContentLoaded", () => {
 }
 
 });
+
 
 
 
