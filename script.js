@@ -1,226 +1,223 @@
-// ===== DOM =====
-const startScreen = document.getElementById("startScreen");
-const board = document.getElementById("board");
-const resultScreen = document.getElementById("resultScreen");
-const resultText = document.getElementById("resultText");
-const timeText = document.getElementById("timeText");
-const retryBtn = document.getElementById("retryBtn");
-const backBtn = document.getElementById("backBtn");
-const missArea = document.getElementById("missArea");
+'use strict';
 
-// ===== SOUND =====
-const beep = new Audio("beep.wav");
-const meow = new Audio("meow.wav");
-const meowLong = new Audio("meow_long.wav");
-const meowMiss = new Audio("meow_miss.wav");
-const meowStart = new Audio("meowStart.wav");
+/* =====================
+  設定
+===================== */
+const MODES = {
+  easy:   { pairs: 3, missLimit: null },
+  normal: { pairs: 6, missLimit: null },
+  hard:   { pairs: 6, missLimit: 5 }
+};
 
-// ===== STATE =====
+const images = [
+  'cat1.png','cat2.png','cat3.png',
+  'cat4.png','cat5.png','cat6.png'
+];
+
+/* =====================
+  DOM
+===================== */
+const startScreen = document.getElementById('startScreen');
+const gameScreen  = document.getElementById('gameScreen');
+const board       = document.getElementById('board');
+const countdownEl = document.getElementById('countdown');
+const missArea    = document.getElementById('missArea');
+const resultScreen= document.getElementById('resultScreen');
+const resultText  = document.getElementById('resultText');
+const timeText    = document.getElementById('timeText');
+const retryBtn    = document.getElementById('retryBtn');
+const backBtn     = document.getElementById('backBtn');
+
+/* =====================
+  サウンド
+===================== */
+const seStart = new Audio('meowStart.mp3');
+const seOk    = new Audio('meowOk.mp3');
+const seNg    = new Audio('meowNg.mp3');
+const seClear = new Audio('meowClear.mp3');
+
+/* =====================
+  状態
+===================== */
+let mode = null;
+let cards = [];
 let firstCard = null;
-let secondCard = null;
-let lockBoard = false;
-let matchedCount = 0;
+let lock = false;
+let matched = 0;
 let missCount = 0;
-let maxMiss = 0;
-let totalCards = 0;
 let startTime = 0;
-let currentMode = "";
 
-// ===== MODE BUTTON =====
-document.querySelectorAll(".modeBtn").forEach(btn => {
-  btn.addEventListener("click", () => {
-    currentMode = btn.dataset.mode;
-
-    if (currentMode === "easy") {
-      totalCards = 6;
-      maxMiss = Infinity;
-    }
-    if (currentMode === "normal") {
-      totalCards = 12;
-      maxMiss = Infinity;
-    }
-    if (currentMode === "hard") {
-      totalCards = 12;
-      maxMiss = 5;
-    }
-
-    startScreen.classList.add("hidden");
-    startCountdown();
+/* =====================
+  モード選択
+===================== */
+document.querySelectorAll('.modeBtn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    mode = btn.dataset.mode;
+    startGame();
   });
 });
 
-// ===== COUNTDOWN =====
-function startCountdown() {
-  board.innerHTML = "";
-  missArea.innerHTML = "";
-  resultScreen.classList.add("hidden");
+/* =====================
+  ゲーム開始
+===================== */
+function startGame() {
+  startScreen.classList.add('hidden');
+  gameScreen.classList.remove('hidden');
+  resultScreen.classList.add('hidden');
+  board.innerHTML = '';
+  missArea.innerHTML = '';
+  matched = 0;
+  missCount = 0;
+  firstCard = null;
+  lock = true;
 
+  showCountdown(() => {
+    setupCards();
+    startTime = Date.now();
+    lock = false;
+  });
+}
+
+/* =====================
+  カウントダウン
+===================== */
+function showCountdown(callback) {
+  countdownEl.classList.remove('hidden');
   let count = 3;
-  lockBoard = true;
 
-  board.innerHTML = `<div class="countdown">${count}</div>`;
-  beep.currentTime = 0;
-  beep.play();
+  countdownEl.textContent = count;
+  seStart.play();
 
   const timer = setInterval(() => {
     count--;
-
-    if (count === 0) {
-      clearInterval(timer);
-      board.innerHTML = "";
-      meowStart.currentTime = 0;
-      meowStart.play();
-      startGame();
-      lockBoard = false;
+    if (count > 0) {
+      countdownEl.textContent = count;
+      seStart.currentTime = 0;
+      seStart.play();
     } else {
-      document.querySelector(".countdown").textContent = count;
-      beep.currentTime = 0;
-      beep.play();
+      clearInterval(timer);
+      countdownEl.classList.add('hidden');
+      callback();
     }
   }, 1000);
 }
 
-// ===== GAME START =====
-function startGame() {
-  matchedCount = 0;
-  missCount = 0;
-  firstCard = null;
-  secondCard = null;
-  board.innerHTML = "";
-  missArea.innerHTML = "";
+/* =====================
+  カード生成
+===================== */
+function setupCards() {
+  const pairCount = MODES[mode].pairs;
+  const useImages = images.slice(0, pairCount);
+  cards = [...useImages, ...useImages]
+    .sort(() => Math.random() - 0.5);
 
-  startTime = Date.now();
+  cards.forEach(src => {
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.dataset.image = src;
+    card.textContent = '？';
 
-  let nums = [];
-  for (let i = 1; i <= totalCards / 2; i++) {
-    nums.push(i, i);
-  }
-  nums.sort(() => Math.random() - 0.5);
-
-  nums.forEach(num => {
-    const card = document.createElement("div");
-    card.className = "card";
-    card.dataset.name = num;
-
-    const img = document.createElement("img");
-    img.src = "img/back.jpg";
-
-    card.appendChild(img);
+    card.addEventListener('click', () => onCardClick(card));
     board.appendChild(card);
-
-    card.addEventListener("click", () => flipCard(card, img));
   });
 }
 
-// ===== FLIP =====
-function flipCard(card, img) {
-  if (lockBoard) return;
-  if (card === firstCard) return;
+/* =====================
+  カード処理
+===================== */
+function onCardClick(card) {
+  if (lock || card.classList.contains('open')) return;
 
-  img.src = `img/${card.dataset.name.toString().padStart(3, "0")}.jpg`;
+  openCard(card);
 
   if (!firstCard) {
     firstCard = card;
     return;
   }
 
-  secondCard = card;
-  checkMatch();
-}
+  lock = true;
 
-// ===== CHECK =====
-function checkMatch() {
-  if (firstCard.dataset.name === secondCard.dataset.name) {
-    meow.currentTime = 0;
-    meow.play();
+  if (firstCard.dataset.image === card.dataset.image) {
+    seOk.play();
+    matched += 2;
+    firstCard = null;
+    lock = false;
 
-    firstCard.classList.add("matched");
-    secondCard.classList.add("matched");
-    matchedCount += 2;
-    resetTurn();
-
-    if (matchedCount === totalCards) {
-      setTimeout(showClear, 500);
+    if (matched === cards.length) {
+      clearGame();
     }
   } else {
-    lockBoard = true;
+    seNg.play();
     missCount++;
-
-    meowMiss.currentTime = 0;
-    meowMiss.play();
-
-    if (currentMode === "hard") {
-      const paw = document.createElement("span");
-      paw.textContent = "🐾";
-      missArea.appendChild(paw);
-    }
+    updateMiss();
 
     setTimeout(() => {
-      firstCard.querySelector("img").src = "img/back.jpg";
-      secondCard.querySelector("img").src = "img/back.jpg";
-      resetTurn();
+      closeCard(firstCard);
+      closeCard(card);
+      firstCard = null;
+      lock = false;
 
-      if (missCount >= maxMiss) {
-        showBadEnd();
+      if (MODES[mode].missLimit &&
+          missCount >= MODES[mode].missLimit) {
+        gameOver();
       }
     }, 800);
   }
 }
 
-function resetTurn() {
-  firstCard = null;
-  secondCard = null;
-  lockBoard = false;
+/* =====================
+  表示制御
+===================== */
+function openCard(card) {
+  card.classList.add('open');
+  card.textContent = '';
+  card.style.backgroundImage = `url(${card.dataset.image})`;
 }
 
-// ===== CLEAR =====
-function showClear() {
+function closeCard(card) {
+  card.classList.remove('open');
+  card.textContent = '？';
+  card.style.backgroundImage = '';
+}
+
+function updateMiss() {
+  missArea.innerHTML = '';
+  if (!MODES[mode].missLimit) return;
+
+  for (let i = 0; i < missCount; i++) {
+    const span = document.createElement('span');
+    span.textContent = '🐾';
+    missArea.appendChild(span);
+  }
+}
+
+/* =====================
+  クリア / ゲームオーバー
+===================== */
+function clearGame() {
+  seClear.play();
+  showResult('PERFECT!! 🎉');
+}
+
+function gameOver() {
+  showResult('BAD END…');
+}
+
+function showResult(text) {
+  lock = true;
   const time = ((Date.now() - startTime) / 1000).toFixed(1);
-  resultText.textContent = "PERFECT!";
+
+  resultText.textContent = text;
   timeText.textContent = `TIME : ${time}s`;
-
-  meowLong.currentTime = 0;
-  meowLong.play();
-
-  resultScreen.classList.remove("hidden");
+  resultScreen.classList.remove('hidden');
 }
 
-// ===== BAD END =====
-function showBadEnd() {
-  resultText.textContent = "BAD END…";
-  timeText.textContent = "";
+/* =====================
+  ボタン
+===================== */
+retryBtn.addEventListener('click', startGame);
 
-  resultScreen.classList.remove("hidden");
-  lockBoard = true;
-}
-
-// ===== BUTTONS =====
-retryBtn.addEventListener("click", () => {
-  resultScreen.classList.add("hidden");
-  startCountdown();
+backBtn.addEventListener('click', () => {
+  gameScreen.classList.add('hidden');
+  startScreen.classList.remove('hidden');
 });
-
-backBtn.addEventListener("click", () => {
-  resultScreen.classList.add("hidden");
-  startScreen.classList.remove("hidden");
-});
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
