@@ -138,6 +138,54 @@ body {
   cursor: pointer;
 }
 
+/* ❓ボタン */
+#helpBtn {
+  position: fixed;
+  top: 12px;
+  right: 12px;
+  width: 40px;
+  height: 40px;
+  background: orange;
+  color: #000;
+  border-radius: 50%;
+  font-size: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 100;
+}
+
+/* 説明画面 */
+#helpScreen {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.95);
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  padding: 20px;
+  z-index: 200;
+}
+
+#helpScreen h2 {
+  margin: 0;
+}
+
+#helpScreen p {
+  max-width: 320px;
+  line-height: 1.6;
+  text-align: left;
+}
+
+#helpBackBtn {
+  padding: 10px 20px;
+  font-size: 16px;
+}
+
 
 
 
