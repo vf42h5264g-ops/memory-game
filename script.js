@@ -5,11 +5,9 @@ document.addEventListener("DOMContentLoaded", () => {
   ===================== */
   const startScreen = document.getElementById("startScreen");
   const gameScreen = document.getElementById("gameScreen");
-
   const board = document.getElementById("board");
   const countdownEl = document.getElementById("countdown");
   const missArea = document.getElementById("missArea");
-
   const resultScreen = document.getElementById("resultScreen");
   const resultText = document.getElementById("resultText");
   const timeText = document.getElementById("timeText");
@@ -23,21 +21,19 @@ document.addEventListener("DOMContentLoaded", () => {
   ===================== */
   const beep = new Audio("beep.wav");
   const meow = new Audio("meow.wav");
-  const meowLong = new Audio("meow_long.wav");
   const meowStart = new Audio("meowStart.wav");
-  const missSound = new Audio("meow_miss.wav");
+  const meowLong = new Audio("meow_long.wav");
+  const meowMiss = new Audio("meow_miss.wav");
 
   /* =====================
-     ゲーム変数（★統一）
+     ゲーム変数
   ===================== */
   let mode = "easy";
   let cardCount = 6;
 
   let firstCard = null;
-  let secondCard = null;
-  let lockBoard = true;
-
-  let matchedCount = 0;
+  let lock = true;
+  let matched = 0;
   let missCount = 0;
 
   let startTime = 0;
@@ -61,15 +57,16 @@ document.addEventListener("DOMContentLoaded", () => {
      ゲーム開始
   ===================== */
   function startGame() {
+    // ★ 絶対に最初に隠す（超重要）
     resultScreen.classList.add("hidden");
+
     board.innerHTML = "";
     missArea.innerHTML = "";
 
     firstCard = null;
-    secondCard = null;
-    matchedCount = 0;
+    matched = 0;
     missCount = 0;
-    lockBoard = true;
+    lock = true;
 
     startScreen.classList.add("hidden");
     gameScreen.classList.remove("hidden");
@@ -77,16 +74,15 @@ document.addEventListener("DOMContentLoaded", () => {
     showCountdown(() => {
       setupCards();
       startTime = Date.now();
-      lockBoard = false;
+      lock = false;
     });
   }
 
   /* =====================
      カウントダウン
   ===================== */
-  function showCountdown(callback) {
+  function showCountdown(done) {
     let count = 3;
-
     countdownEl.textContent = count;
     countdownEl.classList.remove("hidden");
 
@@ -98,17 +94,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
       if (count === 0) {
         clearInterval(timer);
-        countdownEl.textContent = "にゃ！";
+        countdownEl.classList.add("hidden");
 
         meowStart.currentTime = 0;
         meowStart.play();
 
-        setTimeout(() => {
-          countdownEl.classList.add("hidden");
-          countdownEl.textContent = "";
-          callback();
-        }, 600);
-
+        done();
       } else {
         countdownEl.textContent = count;
         beep.currentTime = 0;
@@ -121,16 +112,20 @@ document.addEventListener("DOMContentLoaded", () => {
      カード生成
   ===================== */
   function setupCards() {
-    board.innerHTML = "";
+    const pairCount = cardCount / 2;
+    const names = [];
 
-    const images = [];
-    for (let i = 1; i <= cardCount / 2; i++) {
-      images.push(String(i).padStart(3, "0"));
+    for (let i = 1; i <= pairCount; i++) {
+      const name = String(i).padStart(3, "0");
+      names.push(name, name);
     }
 
-    const cards = [...images, ...images].sort(() => Math.random() - 0.5);
+    names.sort(() => Math.random() - 0.5);
 
-    cards.forEach(name => {
+    board.style.gridTemplateColumns =
+      cardCount === 6 ? "repeat(3,1fr)" : "repeat(4,1fr)";
+
+    names.forEach(name => {
       const card = document.createElement("div");
       card.className = "card";
       card.dataset.name = name;
@@ -146,10 +141,10 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   /* =====================
-     カードをめくる
+     カード操作
   ===================== */
   function flipCard(card, img) {
-    if (lockBoard) return;
+    if (lock) return;
     if (card === firstCard) return;
     if (card.classList.contains("matched")) return;
 
@@ -160,15 +155,11 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    secondCard = card;
-    checkForMatch();
+    checkMatch(card);
   }
 
-  /* =====================
-     判定
-  ===================== */
-  function checkForMatch() {
-    lockBoard = true;
+  function checkMatch(secondCard) {
+    lock = true;
 
     if (firstCard.dataset.name === secondCard.dataset.name) {
       meow.currentTime = 0;
@@ -177,74 +168,64 @@ document.addEventListener("DOMContentLoaded", () => {
       firstCard.classList.add("matched");
       secondCard.classList.add("matched");
 
-      matchedCount += 2;
+      matched += 2;
       resetTurn();
 
-      if (matchedCount === cardCount) {
-        setTimeout(showClear, 500);
+      if (matched === cardCount) {
+        setTimeout(showClear, 600);
       }
-
     } else {
       missCount++;
-      updateMissArea();
 
-      missSound.currentTime = 0;
-      missSound.play();
+      meowMiss.currentTime = 0;
+      meowMiss.play();
+
+      if (mode === "hard") updateMiss();
 
       setTimeout(() => {
         firstCard.querySelector("img").src = "img/back.jpg";
         secondCard.querySelector("img").src = "img/back.jpg";
+
         resetTurn();
 
         if (mode === "hard" && missCount >= 5) {
           showBadEnd();
         }
-
       }, 1000);
     }
   }
 
-  /* =====================
-     ミス表示（HARD用）
-  ===================== */
-  function updateMissArea() {
-    if (mode !== "hard") return;
-
-    missArea.innerHTML = "🐾".repeat(missCount);
+  function resetTurn() {
+    firstCard = null;
+    lock = false;
   }
 
   /* =====================
-     ターンリセット
+     ミス表示（HARD）
   ===================== */
-  function resetTurn() {
-    firstCard = null;
-    secondCard = null;
-    lockBoard = false;
+  function updateMiss() {
+    missArea.textContent = "🐾".repeat(missCount);
   }
 
   /* =====================
      クリア
   ===================== */
   function showClear() {
-    lockBoard = true;
-
     const time = ((Date.now() - startTime) / 1000).toFixed(1);
 
-    meowLong.currentTime = 0;
-    meowLong.play();
-
-    resultText.textContent = "PERFECT!";
+    resultText.textContent = "PERFECT!!";
     timeText.textContent = `TIME : ${time}s`;
 
     resultScreen.classList.remove("hidden");
+
+    meowLong.currentTime = 0;
+    meowLong.play();
   }
 
   /* =====================
      BAD END
   ===================== */
   function showBadEnd() {
-    lockBoard = true;
-
     resultText.textContent = "BAD END…";
     timeText.textContent = "";
 
@@ -259,9 +240,11 @@ document.addEventListener("DOMContentLoaded", () => {
   backBtn.addEventListener("click", () => {
     gameScreen.classList.add("hidden");
     startScreen.classList.remove("hidden");
+    resultScreen.classList.add("hidden");
   });
 
 });
+
 
 
 
