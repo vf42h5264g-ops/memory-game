@@ -114,55 +114,7 @@ document.addEventListener("DOMContentLoaded", () => {
   /* =====================
      カード生成
   ===================== */
-  function setupCards() {
-    const pairCount = cardCount / 2;
-    const images = [];
-
-    for (let i = 1; i <= pairCount; i++) {
-      images.push(i.toString().padStart(3, "0"));
-      images.push(i.toString().padStart(3, "0"));
-    }
-
-    images.sort(() => Math.random() - 0.5);
-
-    images.forEach(name => {
-      const card = document.createElement("div");
-      card.className = "card";
-      card.dataset.name = name;
-
-      const img = document.createElement("img");
-      img.src = "img/back.jpg";
-
-      card.appendChild(img);
-      board.appendChild(card);
-
-      card.addEventListener("click", () => flipCard(card, img));
-    });
-  }
-
-  /* =====================
-     カードめくり
-  ===================== */
-  function flipCard(card, img) {
-    if (lock) return;
-    if (card === firstCard) return;
-
-    img.src = `img/${card.dataset.name}.jpg`;
-
-    if (!firstCard) {
-      firstCard = card;
-      return;
-    }
-
-    secondCard = card;
-    lock = true;
-
-    checkMatch();
-  }
-
-  /* =====================
-     判定
-  ===================== */
+.======= */
   function checkMatch() {
     if (firstCard.dataset.name === secondCard.dataset.name) {
       meow.currentTime = 0;
@@ -193,99 +145,8 @@ document.addEventListener("DOMContentLoaded", () => {
       }, 1000);
     }
   }
-
-  function resetTurn() {
-    firstCard = null;
-    secondCard = null;
-    lock = false;
-  }
-
-  /* =====================
-     失敗表示（肉球）
-  ===================== */
-  function updateMissIcons() {
-    missArea.innerHTML = "";
-    for (let i = 0; i < missCount; i++) {
-      missArea.textContent += "🐾";
-    }
-  }
-
-  /* =====================
-     CLEAR（紙吹雪）
-  ===================== */
-  function showClear() {
-    const time = ((Date.now() - startTime) / 1000).toFixed(1);
-
-    resultText.textContent = "PERFECT!!";
-    timeText.textContent = `TIME : ${time}s`;
-    resultScreen.classList.remove("hidden");
-
-    meowLong.currentTime = 0;
-    meowLong.play();
-
-    launchConfetti();
-  }
-
-  /* =====================
-     BAD END
-  ===================== */
-  function showBadEnd() {
-    resultText.textContent = "BAD END...";
-    timeText.textContent = "";
-    resultScreen.classList.remove("hidden");
-  }
-
-  /* =====================
-     紙吹雪
-  ===================== */
-  function launchConfetti() {
-    for (let i = 0; i < 60; i++) {
-      const confetti = document.createElement("div");
-      confetti.textContent = "🎉";
-      confetti.style.position = "fixed";
-      confetti.style.left = Math.random() * 100 + "vw";
-      confetti.style.top = "-20px";
-      confetti.style.fontSize = "24px";
-      confetti.style.pointerEvents = "none";
-      confetti.style.transition = "transform 2s linear, opacity 2s";
-
-      document.body.appendChild(confetti);
-
-      setTimeout(() => {
-        confetti.style.transform =
-          `translateY(110vh) rotate(${Math.random() * 360}deg)`;
-        confetti.style.opacity = "0";
-      }, 50);
-
-      setTimeout(() => confetti.remove(), 2200);
-    }
-  }
-
-  /* =====================
-     ボタン
-  ===================== */
-  retryBtn.addEventListener("click", () => startGame());
-  backBtn.addEventListener("click", () => {
-    gameScreen.classList.add("hidden");
-    startScreen.classList.remove("hidden");
-  });
-
-  // 説明画面
-const helpBtn = document.getElementById("helpBtn");
-const helpScreen = document.getElementById("helpScreen");
-const helpBackBtn = document.getElementById("helpBackBtn");
-
-helpBtn.addEventListener("click", () => {
-  startScreen.classList.add("hidden");
-  helpScreen.classList.remove("hidden");
 });
 
-helpBackBtn.addEventListener("click", () => {
-  helpScreen.classList.add("hidden");
-  startScreen.classList.remove("hidden");
-});
-
-});
 
 
 
