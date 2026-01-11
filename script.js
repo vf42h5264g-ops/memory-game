@@ -1,53 +1,44 @@
 document.addEventListener("DOMContentLoaded", () => {
-
-  /* ========= 要素 ========= */
   const startScreen = document.getElementById("startScreen");
-  const gameScreen  = document.getElementById("gameScreen");
-  const board       = document.getElementById("board");
-  const modeBtns    = document.querySelectorAll(".modeBtn");
+  const gameScreen = document.getElementById("gameScreen");
+  const board = document.getElementById("board");
 
-  /* ========= 効果音 ========= */
+  const modeButtons = document.querySelectorAll(".modeBtn");
+
+  // 効果音
   const beep = new Audio("beep.wav");
-  const meowStart = new Audio("meow_start.wav");
   const meow = new Audio("meow.wav");
-  const missSound = new Audio("miss.wav");
+  const meowStart = new Audio("meowStart.wav");
+  const meowLong = new Audio("meow_long.wav");
+  const missSound = new Audio("meow_miss.wav");
 
-  /* ========= 状態 ========= */
   let firstCard = null;
   let secondCard = null;
   let lockBoard = false;
   let matchedCount = 0;
-  let selectedMode = null;
+  let totalCards = 12;
 
-  /* ========= iOS用：音アンロック ========= */
-  function unlockAudio(audio) {
-    audio.volume = 0;
-    audio.play().then(() => {
-      audio.pause();
-      audio.currentTime = 0;
-      audio.volume = 1;
-    }).catch(() => {});
-  }
-
-  /* ========= モード選択 ========= */
-  modeBtns.forEach(btn => {
+  /* =====================
+     モード選択
+  ===================== */
+  modeButtons.forEach(btn => {
     btn.addEventListener("click", () => {
-      selectedMode = btn.dataset.mode;
+      const mode = btn.dataset.mode;
 
-      // iOS音対策（超重要）
-      unlockAudio(beep);
-      unlockAudio(meowStart);
-      unlockAudio(meow);
-      unlockAudio(missSound);
+      if (mode === "easy") totalCards = 6;
+      if (mode === "normal") totalCards = 12;
+      if (mode === "hard") totalCards = 12;
 
-      startScreen.style.display = "none";
-      gameScreen.style.display = "block";
+      startScreen.classList.add("hidden");
+      gameScreen.classList.remove("hidden");
 
       startCountdown();
     });
   });
 
-  /* ========= カウントダウン ========= */
+  /* =====================
+     カウントダウン
+  ===================== */
   function startCountdown() {
     let count = 3;
     lockBoard = true;
@@ -66,8 +57,8 @@ document.addEventListener("DOMContentLoaded", () => {
         meowStart.play();
 
         board.innerHTML = "";
-        lockBoard = false;
         startGame();
+        lockBoard = false;
       } else {
         document.querySelector(".countdown").textContent = count;
         beep.currentTime = 0;
@@ -76,22 +67,18 @@ document.addEventListener("DOMContentLoaded", () => {
     }, 1000);
   }
 
-  /* ========= ゲーム開始 ========= */
+  /* =====================
+     ゲーム開始
+  ===================== */
   function startGame() {
-    board.innerHTML = "";
-    firstCard = null;
-    secondCard = null;
     matchedCount = 0;
+    board.innerHTML = "";
 
-    let images = [];
+    const images = ["001","002","003","004","005","006"]
+      .slice(0, totalCards / 2);
 
-    if (selectedMode === "easy") {
-      images = ["001","002","003"];
-    } else {
-      images = ["001","002","003","004","005","006"];
-    }
-
-    const cards = [...images, ...images].sort(() => Math.random() - 0.5);
+    const cards = [...images, ...images]
+      .sort(() => Math.random() - 0.5);
 
     cards.forEach(name => {
       const card = document.createElement("div");
@@ -108,7 +95,9 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  /* ========= カード反転 ========= */
+  /* =====================
+     カード処理
+  ===================== */
   function flipCard(card, img) {
     if (lockBoard) return;
     if (card === firstCard) return;
@@ -124,17 +113,19 @@ document.addEventListener("DOMContentLoaded", () => {
     checkForMatch();
   }
 
-  /* ========= 判定 ========= */
   function checkForMatch() {
     if (firstCard.dataset.name === secondCard.dataset.name) {
       meow.currentTime = 0;
       meow.play();
 
+      firstCard.classList.add("matched");
+      secondCard.classList.add("matched");
+
       matchedCount += 2;
       resetTurn();
 
-      if (matchedCount === board.children.length) {
-        setTimeout(showClear, 600);
+      if (matchedCount === totalCards) {
+        setTimeout(showClear, 500);
       }
     } else {
       lockBoard = true;
@@ -142,36 +133,48 @@ document.addEventListener("DOMContentLoaded", () => {
       missSound.currentTime = 0;
       missSound.play();
 
+      firstCard.classList.add("shake");
+      secondCard.classList.add("shake");
+
       setTimeout(() => {
         firstCard.querySelector("img").src = "img/back.jpg";
         secondCard.querySelector("img").src = "img/back.jpg";
+
+        firstCard.classList.remove("shake");
+        secondCard.classList.remove("shake");
+
         resetTurn();
       }, 1000);
     }
   }
 
-  /* ========= ターンリセット ========= */
   function resetTurn() {
     firstCard = null;
     secondCard = null;
     lockBoard = false;
   }
 
-  /* ========= クリア ========= */
+  /* =====================
+     クリア
+  ===================== */
   function showClear() {
+    meowLong.currentTime = 0;
+    meowLong.play();
+
     board.innerHTML = `
       <div class="clear">
-        <h1>PERFECT!!</h1>
-        <button id="retryBtn">もう1回</button>
+        <h1>PERFECT!</h1>
+        <button id="restartBtn">もう1回</button>
       </div>
     `;
 
-    document.getElementById("retryBtn").addEventListener("click", () => {
+    document.getElementById("restartBtn").addEventListener("click", () => {
       startCountdown();
     });
   }
-
 });
+
+
 
 
 
