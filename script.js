@@ -99,8 +99,8 @@ document.addEventListener("DOMContentLoaded", () => {
         clearInterval(timer);
         countdownEl.classList.add("hidden");
 
-        meowStart.currentTime = 0;
-        meowStart.play();
+        meow.currentTime = 0;
+        meow.play();
 
         callback();
       } else {
@@ -286,6 +286,7 @@ helpBackBtn.addEventListener("click", () => {
 });
 
 });
+
 
 
 
