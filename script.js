@@ -1,37 +1,43 @@
 document.addEventListener("DOMContentLoaded", () => {
+
+  /* =====================
+     DOM
+  ===================== */
   const startScreen = document.getElementById("startScreen");
   const gameScreen = document.getElementById("gameScreen");
   const board = document.getElementById("board");
+  const countdownEl = document.getElementById("countdown");
+  const missUI = document.getElementById("missUI");
 
-  const modeButtons = document.querySelectorAll(".modeBtn");
-
-  // 効果音
+  /* =====================
+     効果音（★修正済み）
+  ===================== */
   const beep = new Audio("beep.wav");
-  const meow = new Audio("meow.wav");
   const meowStart = new Audio("meowStart.wav");
-  const meowLong = new Audio("meow_long.wav");
-  const missSound = new Audio("meow_miss.wav");
+  const meowOK = new Audio("meow.wav");
+  const meowNG = new Audio("meow_miss.wav");
+  const meowClear = new Audio("meow_long.wav");
 
+  /* =====================
+     状態
+  ===================== */
+  let mode = "normal";
   let firstCard = null;
-  let secondCard = null;
-  let lockBoard = false;
+  let lock = false;
   let matchedCount = 0;
-  let totalCards = 12;
+  let missCount = 0;
+  let maxMiss = 0;
+  let totalPairs = 0;
+  let startTime = 0;
 
   /* =====================
      モード選択
   ===================== */
-  modeButtons.forEach(btn => {
+  document.querySelectorAll(".modeBtn").forEach(btn => {
     btn.addEventListener("click", () => {
-      const mode = btn.dataset.mode;
-
-      if (mode === "easy") totalCards = 6;
-      if (mode === "normal") totalCards = 12;
-      if (mode === "hard") totalCards = 12;
-
+      mode = btn.dataset.mode;
       startScreen.classList.add("hidden");
       gameScreen.classList.remove("hidden");
-
       startCountdown();
     });
   });
@@ -40,29 +46,29 @@ document.addEventListener("DOMContentLoaded", () => {
      カウントダウン
   ===================== */
   function startCountdown() {
-    let count = 3;
-    lockBoard = true;
+    board.innerHTML = "";
+    countdownEl.classList.remove("hidden");
 
-    board.innerHTML = `<div class="countdown">${count}</div>`;
-    beep.currentTime = 0;
+    let count = 3;
+    countdownEl.textContent = count;
     beep.play();
 
     const timer = setInterval(() => {
       count--;
 
-      if (count === 0) {
-        clearInterval(timer);
-
-        meowStart.currentTime = 0;
-        meowStart.play();
-
-        board.innerHTML = "";
-        startGame();
-        lockBoard = false;
-      } else {
-        document.querySelector(".countdown").textContent = count;
+      if (count > 0) {
+        countdownEl.textContent = count;
         beep.currentTime = 0;
         beep.play();
+      } else {
+        clearInterval(timer);
+        countdownEl.textContent = "にゃ！";
+        meowStart.play();
+
+        setTimeout(() => {
+          countdownEl.classList.add("hidden");
+          startGame();
+        }, 800);
       }
     }, 1000);
   }
@@ -71,22 +77,38 @@ document.addEventListener("DOMContentLoaded", () => {
      ゲーム開始
   ===================== */
   function startGame() {
-    matchedCount = 0;
     board.innerHTML = "";
+    firstCard = null;
+    lock = false;
+    matchedCount = 0;
+    missCount = 0;
 
-    const images = ["001","002","003","004","005","006"]
-      .slice(0, totalCards / 2);
+    if (mode === "easy") {
+      totalPairs = 3;
+      maxMiss = Infinity;
+    } else if (mode === "normal") {
+      totalPairs = 6;
+      maxMiss = Infinity;
+    } else {
+      totalPairs = 6;
+      maxMiss = 5;
+    }
 
-    const cards = [...images, ...images]
-      .sort(() => Math.random() - 0.5);
+    updateMissUI();
+    startTime = Date.now();
+
+    const images = ["001", "002", "003", "004", "005", "006"]
+      .slice(0, totalPairs);
+
+    const cards = [...images, ...images].sort(() => Math.random() - 0.5);
 
     cards.forEach(name => {
       const card = document.createElement("div");
       card.className = "card";
-      card.dataset.name = name;
 
       const img = document.createElement("img");
       img.src = "img/back.jpg";
+      img.dataset.name = name;
 
       card.appendChild(img);
       board.appendChild(card);
@@ -99,80 +121,113 @@ document.addEventListener("DOMContentLoaded", () => {
      カード処理
   ===================== */
   function flipCard(card, img) {
-    if (lockBoard) return;
-    if (card === firstCard) return;
+    if (lock || card === firstCard) return;
 
-    img.src = `img/${card.dataset.name}.jpg`;
+    img.src = `img/${img.dataset.name}.jpg`;
 
     if (!firstCard) {
       firstCard = card;
       return;
     }
 
-    secondCard = card;
-    checkForMatch();
-  }
+    lock = true;
+    const firstImg = firstCard.querySelector("img");
 
-  function checkForMatch() {
-    if (firstCard.dataset.name === secondCard.dataset.name) {
-      meow.currentTime = 0;
-      meow.play();
+    if (firstImg.dataset.name === img.dataset.name) {
+      meowOK.currentTime = 0;
+      meowOK.play();
 
-      firstCard.classList.add("matched");
-      secondCard.classList.add("matched");
+      matchedCount++;
+      firstCard = null;
+      lock = false;
 
-      matchedCount += 2;
-      resetTurn();
-
-      if (matchedCount === totalCards) {
+      if (matchedCount === totalPairs) {
         setTimeout(showClear, 500);
       }
     } else {
-      lockBoard = true;
-
-      missSound.currentTime = 0;
-      missSound.play();
-
-      firstCard.classList.add("shake");
-      secondCard.classList.add("shake");
+      missCount++;
+      meowNG.currentTime = 0;
+      meowNG.play();
+      updateMissUI();
 
       setTimeout(() => {
-        firstCard.querySelector("img").src = "img/back.jpg";
-        secondCard.querySelector("img").src = "img/back.jpg";
+        img.src = "img/back.jpg";
+        firstImg.src = "img/back.jpg";
+        firstCard = null;
+        lock = false;
 
-        firstCard.classList.remove("shake");
-        secondCard.classList.remove("shake");
-
-        resetTurn();
-      }, 1000);
+        if (mode === "hard" && missCount >= maxMiss) {
+          showBadEnd();
+        }
+      }, 800);
     }
   }
 
-  function resetTurn() {
-    firstCard = null;
-    secondCard = null;
-    lockBoard = false;
+  /* =====================
+     ミス表示
+  ===================== */
+  function updateMissUI() {
+    missUI.textContent =
+      mode === "hard" ? "🐾".repeat(missCount) : "";
   }
 
   /* =====================
      クリア
   ===================== */
   function showClear() {
-    meowLong.currentTime = 0;
-    meowLong.play();
+    const time = ((Date.now() - startTime) / 1000).toFixed(1);
 
     board.innerHTML = `
-      <div class="clear">
-        <h1>PERFECT!</h1>
-        <button id="restartBtn">もう1回</button>
+      <div class="result clear">
+        <h1>PERFECT!!</h1>
+        <p>${time} 秒</p>
+        <button onclick="restart()">もう1回</button>
+        <button onclick="backToStart()">モード選択へ</button>
       </div>
     `;
 
-    document.getElementById("restartBtn").addEventListener("click", () => {
-      startCountdown();
-    });
+    meowClear.play();
+    confetti();
   }
+
+  /* =====================
+     BAD END
+  ===================== */
+  function showBadEnd() {
+    board.innerHTML = `
+      <div class="result bad">
+        <h1>BAD END…</h1>
+        <button onclick="backToStart()">モード選択へ</button>
+      </div>
+    `;
+  }
+
+  /* =====================
+     紙吹雪
+  ===================== */
+  function confetti() {
+    for (let i = 0; i < 80; i++) {
+      const c = document.createElement("div");
+      c.className = "confetti";
+      c.style.left = Math.random() * 100 + "vw";
+      c.style.animationDelay = Math.random() * 2 + "s";
+      document.body.appendChild(c);
+      setTimeout(() => c.remove(), 3000);
+    }
+  }
+
+  /* =====================
+     グローバル
+  ===================== */
+  window.restart = startCountdown;
+  window.backToStart = () => {
+    gameScreen.classList.add("hidden");
+    startScreen.classList.remove("hidden");
+  };
+
 });
+
+
 
 
 
