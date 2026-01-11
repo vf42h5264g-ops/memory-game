@@ -133,6 +133,27 @@ body {
   color: red;
 }
 
+.modeSelect {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.modeBtn {
+  font-size: 28px;
+  padding: 18px 36px;
+  background: orange;
+  color: #000;
+  border-radius: 14px;
+  text-align: center;
+  cursor: pointer;
+  user-select: none;
+}
+
+.modeBtn:active {
+  transform: scale(0.95);
+}
+
 
 
 
