@@ -2,35 +2,56 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Memory Game</title>
+  <title>にゃんこ神経衰弱</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-<audio id="beep" src="beep.wav"></audio>
-<audio id="meowStart" src="meow_start.wav"></audio>
-
-<!-- スタート画面 -->
+<!-- =====================
+  スタート画面
+===================== -->
 <div id="startScreen">
+  <h1 class="title">🐾 にゃんこ神経衰弱 🐾</h1>
+
   <div class="modeSelect">
     <div class="modeBtn" data-mode="easy">EASY</div>
-　  <div class="modeBtn" data-mode="normal">NORMAL</div>
-　  <div class="modeBtn" data-mode="hard">HARD</div>
-
+    <div class="modeBtn" data-mode="normal">NORMAL</div>
+    <div class="modeBtn" data-mode="hard">HARD</div>
   </div>
 </div>
 
-
-<!-- ゲーム画面 -->
+<!-- =====================
+  ゲーム画面
+===================== -->
 <div id="gameScreen" class="hidden">
-  <div id="board"></div>
+
+  <!-- カウントダウン -->
+  <div id="countdown" class="hidden"></div>
+
+  <!-- HARDモード ミス表示 -->
   <div id="missUI"></div>
+
+  <!-- カードボード -->
+  <div id="board"></div>
+
+  <!-- 結果表示 -->
+  <div id="resultScreen" class="hidden">
+    <div id="resultText"></div>
+    <div id="clearTime"></div>
+
+    <div class="resultButtons">
+      <button id="retryBtn">もう1回</button>
+      <button id="backBtn">モード選択に戻る</button>
+    </div>
+  </div>
+
 </div>
 
-<script src="script.js?v=5"></script>
+<script src="script.js"></script>
 </body>
 </html>
+
+
 
 
 
