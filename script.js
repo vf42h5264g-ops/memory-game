@@ -60,8 +60,8 @@ document.addEventListener("DOMContentLoaded", () => {
       meowStart.play();
 
       board.innerHTML = "";   // カウント表示を消す
-      startGame();            // カード生成
       lockBoard = false;      // ★これが無いとカード死亡
+      startGame();            // カード生成
     } else {
       document.querySelector(".countdown").textContent = count;
 
@@ -221,6 +221,7 @@ if (mode === "hard" && missCount >= maxMiss) {
 }
 
 });
+
 
 
 
