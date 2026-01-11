@@ -61,15 +61,19 @@ document.querySelectorAll('.modeBtn').forEach(btn => {
   ゲーム開始
 ===================== */
 function startGame() {
-  startScreen.classList.add('hidden');
-  gameScreen.classList.remove('hidden');
-  resultScreen.classList.add('hidden');
-  board.innerHTML = '';
-  missArea.innerHTML = '';
+  // ★ 重要：結果画面を必ず隠す
+  resultScreen.classList.add("hidden");
+
+  board.innerHTML = "";
+  missArea.innerHTML = "";
+
   matched = 0;
   missCount = 0;
   firstCard = null;
   lock = true;
+
+  startScreen.classList.add("hidden");
+  gameScreen.classList.remove("hidden");
 
   showCountdown(() => {
     setupCards();
@@ -78,29 +82,35 @@ function startGame() {
   });
 }
 
+
 /* =====================
   カウントダウン
 ===================== */
 function showCountdown(callback) {
-  countdownEl.classList.remove('hidden');
-  let count = 3;
+  countdownEl.classList.remove("hidden");
 
-  countdownEl.textContent = count;
+  countdownEl.textContent = "3";
+  seStart.currentTime = 0;
   seStart.play();
 
-  const timer = setInterval(() => {
-    count--;
-    if (count > 0) {
-      countdownEl.textContent = count;
-      seStart.currentTime = 0;
-      seStart.play();
-    } else {
-      clearInterval(timer);
-      countdownEl.classList.add('hidden');
-      callback();
-    }
+  setTimeout(() => {
+    countdownEl.textContent = "2";
+    seStart.currentTime = 0;
+    seStart.play();
   }, 1000);
+
+  setTimeout(() => {
+    countdownEl.textContent = "1";
+    seStart.currentTime = 0;
+    seStart.play();
+  }, 2000);
+
+  setTimeout(() => {
+    countdownEl.classList.add("hidden");
+    callback(); // ← 必ず呼ばれる
+  }, 3000);
 }
+
 
 /* =====================
   カード生成
@@ -221,3 +231,4 @@ backBtn.addEventListener('click', () => {
   gameScreen.classList.add('hidden');
   startScreen.classList.remove('hidden');
 });
+
