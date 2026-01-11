@@ -157,6 +157,12 @@ body {
   transform: scale(0.95);
 }
 
+#missUI {
+  text-align: center;
+  font-size: 28px;
+  margin: 10px;
+}
+
 
 
 
