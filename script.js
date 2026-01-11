@@ -8,21 +8,20 @@ document.addEventListener("DOMContentLoaded", () => {
   const board = document.getElementById("board");
   const countdownEl = document.getElementById("countdown");
   const missArea = document.getElementById("missArea");
+
   const resultScreen = document.getElementById("resultScreen");
   const resultText = document.getElementById("resultText");
   const timeText = document.getElementById("timeText");
   const retryBtn = document.getElementById("retryBtn");
   const backBtn = document.getElementById("backBtn");
 
-  const modeBtns = document.querySelectorAll(".modeBtn");
-
   /* =====================
      サウンド
   ===================== */
   const beep = new Audio("beep.wav");
   const meow = new Audio("meow.wav");
-  const meowStart = new Audio("meowStart.wav");
   const meowLong = new Audio("meow_long.wav");
+  const meowStart = new Audio("meowStart.wav");
   const meowMiss = new Audio("meow_miss.wav");
 
   /* =====================
@@ -32,7 +31,9 @@ document.addEventListener("DOMContentLoaded", () => {
   let cardCount = 6;
 
   let firstCard = null;
+  let secondCard = null;
   let lock = true;
+
   let matched = 0;
   let missCount = 0;
 
@@ -41,7 +42,7 @@ document.addEventListener("DOMContentLoaded", () => {
   /* =====================
      モード選択
   ===================== */
-  modeBtns.forEach(btn => {
+  document.querySelectorAll(".modeBtn").forEach(btn => {
     btn.addEventListener("click", () => {
       mode = btn.dataset.mode;
 
@@ -57,14 +58,13 @@ document.addEventListener("DOMContentLoaded", () => {
      ゲーム開始
   ===================== */
   function startGame() {
-    // ★ 絶対に最初に隠す（超重要）
-    resultScreen.classList.add("hidden");
-    resultScreen.style.display = "none";
-
+    // 初期化
     board.innerHTML = "";
     missArea.innerHTML = "";
+    resultScreen.classList.add("hidden");
 
     firstCard = null;
+    secondCard = null;
     matched = 0;
     missCount = 0;
     lock = true;
@@ -72,7 +72,9 @@ document.addEventListener("DOMContentLoaded", () => {
     startScreen.classList.add("hidden");
     gameScreen.classList.remove("hidden");
 
-    showCountdown(() => {
+    if (mode === "hard") updateMissIcons();
+
+    startCountdown(() => {
       setupCards();
       startTime = Date.now();
       lock = false;
@@ -82,7 +84,7 @@ document.addEventListener("DOMContentLoaded", () => {
   /* =====================
      カウントダウン
   ===================== */
-  function showCountdown(done) {
+  function startCountdown(callback) {
     let count = 3;
     countdownEl.textContent = count;
     countdownEl.classList.remove("hidden");
@@ -100,7 +102,7 @@ document.addEventListener("DOMContentLoaded", () => {
         meowStart.currentTime = 0;
         meowStart.play();
 
-        done();
+        callback();
       } else {
         countdownEl.textContent = count;
         beep.currentTime = 0;
@@ -114,19 +116,16 @@ document.addEventListener("DOMContentLoaded", () => {
   ===================== */
   function setupCards() {
     const pairCount = cardCount / 2;
-    const names = [];
+    const images = [];
 
     for (let i = 1; i <= pairCount; i++) {
-      const name = String(i).padStart(3, "0");
-      names.push(name, name);
+      images.push(i.toString().padStart(3, "0"));
+      images.push(i.toString().padStart(3, "0"));
     }
 
-    names.sort(() => Math.random() - 0.5);
+    images.sort(() => Math.random() - 0.5);
 
-    board.style.gridTemplateColumns =
-      cardCount === 6 ? "repeat(3,1fr)" : "repeat(4,1fr)";
-
-    names.forEach(name => {
+    images.forEach(name => {
       const card = document.createElement("div");
       card.className = "card";
       card.dataset.name = name;
@@ -142,12 +141,11 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   /* =====================
-     カード操作
+     カードめくり
   ===================== */
   function flipCard(card, img) {
     if (lock) return;
     if (card === firstCard) return;
-    if (card.classList.contains("matched")) return;
 
     img.src = `img/${card.dataset.name}.jpg`;
 
@@ -156,18 +154,19 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    checkMatch(card);
-  }
-
-  function checkMatch(secondCard) {
+    secondCard = card;
     lock = true;
 
+    checkMatch();
+  }
+
+  /* =====================
+     判定
+  ===================== */
+  function checkMatch() {
     if (firstCard.dataset.name === secondCard.dataset.name) {
       meow.currentTime = 0;
       meow.play();
-
-      firstCard.classList.add("matched");
-      secondCard.classList.add("matched");
 
       matched += 2;
       resetTurn();
@@ -177,84 +176,103 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     } else {
       missCount++;
-
       meowMiss.currentTime = 0;
       meowMiss.play();
 
-      if (mode === "hard") updateMiss();
+      if (mode === "hard") updateMissIcons();
 
       setTimeout(() => {
+        if (mode === "hard" && missCount >= 5) {
+          showBadEnd();
+          return;
+        }
+
         firstCard.querySelector("img").src = "img/back.jpg";
         secondCard.querySelector("img").src = "img/back.jpg";
-
         resetTurn();
-
-　　　if (mode === "hard") {
- 　　 updateMissIcons(); // 肉球表示（あるなら）
-
- 　　 if (missCount >= 5) {
-  　  lock = true;
-  　  setTimeout(showBadEnd, 800);
-    　return;
-  }
-}
-
+      }, 1000);
+    }
   }
 
   function resetTurn() {
     firstCard = null;
+    secondCard = null;
     lock = false;
   }
 
   /* =====================
-     ミス表示（HARD）
+     失敗表示（肉球）
   ===================== */
-  function updateMiss() {
-    missArea.textContent = "🐾".repeat(missCount);
+  function updateMissIcons() {
+    missArea.innerHTML = "";
+    for (let i = 0; i < missCount; i++) {
+      missArea.textContent += "🐾";
+    }
   }
 
   /* =====================
-     クリア
+     CLEAR（紙吹雪）
   ===================== */
   function showClear() {
-  const time = ((Date.now() - startTime) / 1000).toFixed(1);
+    const time = ((Date.now() - startTime) / 1000).toFixed(1);
 
-  showResult("PERFECT!!", `TIME : ${time}s`);
+    resultText.textContent = "PERFECT!!";
+    timeText.textContent = `TIME : ${time}s`;
+    resultScreen.classList.remove("hidden");
 
-  meowLong.currentTime = 0;
-  meowLong.play();
-}
+    meowLong.currentTime = 0;
+    meowLong.play();
 
-function showResult(message, timeTextValue = "") {
-
-  resultText.textContent = message;
-  timeText.textContent = timeTextValue;
-
-  resultScreen.classList.remove("hidden");
-  resultScreen.style.display = "flex";
-}
-
+    launchConfetti();
+  }
 
   /* =====================
      BAD END
   ===================== */
   function showBadEnd() {
-  showResult("BAD END...");
-}
+    resultText.textContent = "BAD END...";
+    timeText.textContent = "";
+    resultScreen.classList.remove("hidden");
+  }
 
+  /* =====================
+     紙吹雪
+  ===================== */
+  function launchConfetti() {
+    for (let i = 0; i < 60; i++) {
+      const confetti = document.createElement("div");
+      confetti.textContent = "🎉";
+      confetti.style.position = "fixed";
+      confetti.style.left = Math.random() * 100 + "vw";
+      confetti.style.top = "-20px";
+      confetti.style.fontSize = "24px";
+      confetti.style.pointerEvents = "none";
+      confetti.style.transition = "transform 2s linear, opacity 2s";
+
+      document.body.appendChild(confetti);
+
+      setTimeout(() => {
+        confetti.style.transform =
+          `translateY(110vh) rotate(${Math.random() * 360}deg)`;
+        confetti.style.opacity = "0";
+      }, 50);
+
+      setTimeout(() => confetti.remove(), 2200);
+    }
+  }
 
   /* =====================
      ボタン
   ===================== */
-  retryBtn.addEventListener("click", startGame);
-
+  retryBtn.addEventListener("click", () => startGame());
   backBtn.addEventListener("click", () => {
     gameScreen.classList.add("hidden");
     startScreen.classList.remove("hidden");
-    resultScreen.classList.add("hidden");
   });
 
 });
+
+
 
 
 
