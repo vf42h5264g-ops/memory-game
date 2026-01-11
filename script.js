@@ -1,10 +1,16 @@
-document.addEventListener("DOMContentLoaded", () => {
-  document.querySelectorAll(".modeBtn").forEach(btn => {
-    btn.addEventListener("click", () => {
-      alert("押された：" + btn.dataset.mode);
-    });
+let selectedMode = null;
+
+document.querySelectorAll(".modeBtn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    selectedMode = btn.dataset.mode;
+    startScreen.classList.add("hidden");
+    gameScreen.classList.remove("hidden");
+
+    startCountdown(); // ← ここが超重要
   });
 });
+
+
 
 
 
