@@ -270,7 +270,23 @@ document.addEventListener("DOMContentLoaded", () => {
     startScreen.classList.remove("hidden");
   });
 
+  // 説明画面
+const helpBtn = document.getElementById("helpBtn");
+const helpScreen = document.getElementById("helpScreen");
+const helpBackBtn = document.getElementById("helpBackBtn");
+
+helpBtn.addEventListener("click", () => {
+  startScreen.classList.add("hidden");
+  helpScreen.classList.remove("hidden");
 });
+
+helpBackBtn.addEventListener("click", () => {
+  helpScreen.classList.add("hidden");
+  startScreen.classList.remove("hidden");
+});
+
+});
+
 
 
 
