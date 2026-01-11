@@ -3,17 +3,16 @@
 <head>
   <meta charset="UTF-8">
   <title>にゃんあわせ</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-<!-- =====================
-  スタート画面
-===================== -->
-<div id="startScreen">
-  <h1 class="title">🐾 にゃんあわせ 🐾</h1>
+<!-- ===== START ===== -->
+<div id="startScreen" class="screen">
+  <h1>🐾 にゃんあわせ 🐾</h1>
 
-  <div class="modeSelect">
+  <div class="modeBtns">
     <div class="modeBtn" data-mode="easy">EASY</div>
     <div class="modeBtn" data-mode="normal">NORMAL</div>
     <div class="modeBtn" data-mode="hard">HARD</div>
@@ -22,49 +21,34 @@
   <div id="helpBtn">❓</div>
 </div>
 
-<div id="gameScreen" class="hidden">
-
-  <div id="countdown" class="hidden"></div>
-
-  <div id="missArea"></div>
-
-  <div id="board"></div>
-
-  <div id="resultScreen" class="hidden">
-    <div id="resultText"></div>
-    <div id="timeText"></div>
-
-    <button id="retryBtn">もう1回</button>
-    <button id="backBtn">モード選択</button>
-  </div>
-
-</div>
-<!-- 説明画面 -->
-<div id="helpScreen" class="hidden">
+<!-- ===== HELP ===== -->
+<div id="helpScreen" class="screen hidden">
   <h2>あそびかた</h2>
-
-  <p>
-    ・同じねこのカードを2枚そろえよう<br>
-    ・すべてそろえるとクリア！<br><br>
-
-    <strong>EASY</strong><br>
-    ・カード6枚<br><br>
-
-    <strong>NORMAL</strong><br>
-    ・カード12枚<br><br>
-
-    <strong>HARD</strong><br>
-    ・カード12枚<br>
-    ・5回まちがえるとゲームオーバー
-  </p>
-
-  <button id="helpBackBtn">戻る</button>
+  <p>カードをめくって同じ絵をそろえよう！</p>
+  <p>HARDは5回ミスでBAD END</p>
+  <button id="backFromHelp">戻る</button>
 </div>
 
+<!-- ===== GAME ===== -->
+<div id="gameScreen" class="screen hidden">
+  <div id="countdown" class="hidden"></div>
+  <div id="missArea"></div>
+  <div id="board"></div>
+</div>
+
+<!-- ===== RESULT ===== -->
+<div id="resultScreen" class="screen hidden">
+  <h2 id="resultText"></h2>
+  <p id="timeText"></p>
+  <button id="retryBtn">もう1回</button>
+  <button id="backBtn">モード選択</button>
+</div>
 
 <script src="script.js"></script>
 </body>
 </html>
+
+
 
 
 
