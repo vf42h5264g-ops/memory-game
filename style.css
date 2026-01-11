@@ -110,8 +110,11 @@ body {
 
 .modeSelect {
   display: flex;
+  flex-direction: column; /* ← 縦並び */
   gap: 20px;
+  align-items: center;
 }
+
 
 .modeSelect button {
   font-size: 24px;
@@ -153,6 +156,7 @@ body {
 .modeBtn:active {
   transform: scale(0.95);
 }
+
 
 
 
