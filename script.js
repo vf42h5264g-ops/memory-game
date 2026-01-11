@@ -212,16 +212,23 @@ document.addEventListener("DOMContentLoaded", () => {
      クリア
   ===================== */
   function showClear() {
-    const time = ((Date.now() - startTime) / 1000).toFixed(1);
+  const time = ((Date.now() - startTime) / 1000).toFixed(1);
 
-    resultText.textContent = "PERFECT!!";
-    timeText.textContent = `TIME : ${time}s`;
+  showResult("PERFECT!!", `TIME : ${time}s`);
 
-    resultScreen.classList.remove("hidden");
+  meowLong.currentTime = 0;
+  meowLong.play();
+}
 
-    meowLong.currentTime = 0;
-    meowLong.play();
-  }
+function showResult(message, timeTextValue = "") {
+
+  resultText.textContent = message;
+  timeText.textContent = timeTextValue;
+
+  resultScreen.classList.remove("hidden");
+  resultScreen.style.display = "flex";
+}
+
 
   /* =====================
      BAD END
@@ -245,6 +252,7 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
 });
+
 
 
 
