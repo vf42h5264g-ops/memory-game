@@ -1,182 +1,143 @@
+/* ===== 共通 ===== */
+* {
+  box-sizing: border-box;
+}
+
 body {
   margin: 0;
-  font-family: sans-serif;
-  background: #222;
+  background: black;
+  color: white;
+  font-family: "Arial", sans-serif;
+  text-align: center;
 }
 
-/* 画面切り替え */
 .hidden {
-  display: none !important;
+  display: none;
 }
 
-/* スタート画面 */
+/* ===== スタート画面 ===== */
 #startScreen {
-  position: fixed;
-  inset: 0;
-  background: #111;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 10;
-}
-
-#startBtn {
-  font-size: 32px;
-  padding: 20px 40px;
-  background: orange;
-  border: none;
-  border-radius: 12px;
-}
-
-/* ゲーム盤 */
-#board {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 10px;
-  padding: 10px;
-}
-
-/* カード */
-.card {
-  aspect-ratio: 1 / 1;
-}
-
-.card img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-
-.clearScreen {
-  grid-column: 1 / -1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  color: white;
   height: 100vh;
-  text-align: center;
-}
-
-.clearScreen button {
-  margin-top: 20px;
-  font-size: 20px;
-  padding: 12px 24px;
-  border-radius: 10px;
-}
-
-.countdown {
-  grid-column: 1 / -1;
-  font-size: 90px;
-  color: yellow;
-  text-align: center;
-  margin-top: 40vh;
-}
-
-
-.card.matched {
-  animation: pop 0.4s ease-out;
-  box-shadow: 0 0 20px rgba(255, 200, 0, 0.8);
-}
-
-@keyframes pop {
-  0% {
-    transform: scale(1);
-  }
-  50% {
-    transform: scale(1.15) rotate(2deg);
-  }
-  100% {
-    transform: scale(1);
-  }
-}
-
-.confetti {
-  position: fixed;
-  top: -10px;
-  width: 10px;
-  height: 10px;
-  background-color: red;
-  animation: fall 3s linear forwards;
-  z-index: 9999;
-}
-
-@keyframes fall {
-  to {
-    transform: translateY(110vh) rotate(360deg);
-  }
-}
-
-.modeSelect {
-  display: flex;
-  flex-direction: column; /* ← 縦並び */
-  gap: 20px;
-  align-items: center;
-}
-
-
-.modeSelect button {
-  font-size: 24px;
-  padding: 20px;
-}
-
-.result {
-  position: fixed;
-  inset: 0;
-  background: #000c;
   display: flex;
   flex-direction: column;
-  align-items: center;
   justify-content: center;
-  color: white;
+  align-items: center;
 }
 
-.result.bad h1 {
-  color: red;
+.title {
+  font-size: 40px;
+  margin-bottom: 40px;
 }
 
 .modeSelect {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 20px;
 }
 
 .modeBtn {
-  font-size: 28px;
-  padding: 18px 36px;
-  background: orange;
-  color: #000;
-  border-radius: 14px;
-  text-align: center;
-  cursor: pointer;
-  user-select: none;
-}
-
-.modeBtn:active {
-  transform: scale(0.95);
-}
-
-#missUI {
-  text-align: center;
-  font-size: 28px;
-  margin: 10px;
-}
-
-.confetti {
-  position: fixed;
-  top: -10px;
-  width: 10px;
-  height: 10px;
+  width: 200px;
+  padding: 15px;
   background: gold;
-  animation: fall 3s linear forwards;
+  color: black;
+  font-size: 24px;
+  font-weight: bold;
+  border-radius: 10px;
+  cursor: pointer;
 }
 
-@keyframes fall {
-  to {
-    transform: translateY(100vh) rotate(360deg);
-  }
+.modeBtn:hover {
+  background: orange;
 }
+
+/* ===== ゲーム画面 ===== */
+#gameScreen {
+  min-height: 100vh;
+  padding: 20px;
+}
+
+/* ===== カウントダウン ===== */
+#countdown {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.85);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 100px;
+  color: yellow;
+  z-index: 100;
+}
+
+/* ===== ミス表示 ===== */
+#missUI {
+  font-size: 24px;
+  margin-bottom: 10px;
+}
+
+/* ===== カードボード ===== */
+#board {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: 10px;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.card {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  background-image: url("img/back.jpg");
+  background-size: cover;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.card.open {
+  background-size: cover;
+}
+
+.card.matched {
+  opacity: 0.4;
+  pointer-events: none;
+}
+
+/* ===== 結果画面 ===== */
+#resultScreen {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.9);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 20px;
+  z-index: 200;
+}
+
+#resultText {
+  font-size: 40px;
+}
+
+#clearTime {
+  font-size: 24px;
+}
+
+.resultButtons {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.resultButtons button {
+  padding: 10px 20px;
+  font-size: 20px;
+  border-radius: 10px;
+  border: none;
+  cursor: pointer;
+}
+
+
 
 
 
