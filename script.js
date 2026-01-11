@@ -189,11 +189,16 @@ document.addEventListener("DOMContentLoaded", () => {
 
         resetTurn();
 
-        if (mode === "hard" && missCount >= 5) {
-          showBadEnd();
-        }
-      }, 1000);
-    }
+　　　if (mode === "hard") {
+ 　　 updateMissIcons(); // 肉球表示（あるなら）
+
+ 　　 if (missCount >= 5) {
+  　  lock = true;
+  　  setTimeout(showBadEnd, 800);
+    　return;
+  }
+}
+
   }
 
   function resetTurn() {
@@ -234,11 +239,9 @@ function showResult(message, timeTextValue = "") {
      BAD END
   ===================== */
   function showBadEnd() {
-    resultText.textContent = "BAD END…";
-    timeText.textContent = "";
+  showResult("BAD END...");
+}
 
-    resultScreen.classList.remove("hidden");
-  }
 
   /* =====================
      ボタン
@@ -252,6 +255,7 @@ function showResult(message, timeTextValue = "") {
   });
 
 });
+
 
 
 
