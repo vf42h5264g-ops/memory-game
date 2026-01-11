@@ -59,6 +59,7 @@ document.addEventListener("DOMContentLoaded", () => {
   function startGame() {
     // ★ 絶対に最初に隠す（超重要）
     resultScreen.classList.add("hidden");
+    resultScreen.style.display = "none";
 
     board.innerHTML = "";
     missArea.innerHTML = "";
@@ -244,6 +245,7 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
 });
+
 
 
 
