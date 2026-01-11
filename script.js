@@ -68,9 +68,9 @@ document.addEventListener("DOMContentLoaded", () => {
   ===================== */
   function startGame() {
     // 初期化
+    resultScreen.classList.add("hidden");
     board.innerHTML = "";
     missArea.innerHTML = "";
-    resultScreen.classList.add("hidden");
 
     firstCard = null;
     matched = 0;
@@ -253,6 +253,7 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
 });
+
 
 
 
