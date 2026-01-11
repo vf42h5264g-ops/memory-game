@@ -1,234 +1,258 @@
-'use strict';
+document.addEventListener("DOMContentLoaded", () => {
 
-/* =====================
-  設定
-===================== */
-const MODES = {
-  easy:   { pairs: 3, missLimit: null },
-  normal: { pairs: 6, missLimit: null },
-  hard:   { pairs: 6, missLimit: 5 }
-};
+  /* =====================
+     要素取得
+  ===================== */
+  const startScreen = document.getElementById("startScreen");
+  const gameScreen = document.getElementById("gameScreen");
 
-const images = [
-  'cat1.png','cat2.png','cat3.png',
-  'cat4.png','cat5.png','cat6.png'
-];
+  const modeBtns = document.querySelectorAll(".modeBtn");
 
-/* =====================
-  DOM
-===================== */
-const startScreen = document.getElementById('startScreen');
-const gameScreen  = document.getElementById('gameScreen');
-const board       = document.getElementById('board');
-const countdownEl = document.getElementById('countdown');
-const missArea    = document.getElementById('missArea');
-const resultScreen= document.getElementById('resultScreen');
-const resultText  = document.getElementById('resultText');
-const timeText    = document.getElementById('timeText');
-const retryBtn    = document.getElementById('retryBtn');
-const backBtn     = document.getElementById('backBtn');
+  const countdownEl = document.getElementById("countdown");
+  const board = document.getElementById("board");
+  const missArea = document.getElementById("missArea");
 
-/* =====================
-  サウンド
-===================== */
-const seStart = new Audio('meowStart.mp3');
-const seOk    = new Audio('meowOk.mp3');
-const seNg    = new Audio('meowNg.mp3');
-const seClear = new Audio('meowClear.mp3');
+  const resultScreen = document.getElementById("resultScreen");
+  const resultText = document.getElementById("resultText");
+  const timeText = document.getElementById("timeText");
 
-/* =====================
-  状態
-===================== */
-let mode = null;
-let cards = [];
-let firstCard = null;
-let lock = false;
-let matched = 0;
-let missCount = 0;
-let startTime = 0;
+  const retryBtn = document.getElementById("retryBtn");
+  const backBtn = document.getElementById("backBtn");
 
-/* =====================
-  モード選択
-===================== */
-document.querySelectorAll('.modeBtn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    mode = btn.dataset.mode;
-    startGame();
-  });
-});
+  /* =====================
+     サウンド
+  ===================== */
+  const seCount = new Audio("sound/count.wav");
+  const seFlip = new Audio("sound/flip.wav");
+  const seMiss = new Audio("sound/miss.wav");
+  const seMatch = new Audio("sound/match.wav");
+  const seClear = new Audio("sound/clear.wav");
 
-/* =====================
-  ゲーム開始
-===================== */
-function startGame() {
-  // ★ 重要：結果画面を必ず隠す
-  resultScreen.classList.add("hidden");
+  /* =====================
+     ゲーム変数
+  ===================== */
+  let mode = "easy";
+  let cardCount = 6;
 
-  board.innerHTML = "";
-  missArea.innerHTML = "";
+  let firstCard = null;
+  let lock = true;
 
-  matched = 0;
-  missCount = 0;
-  firstCard = null;
-  lock = true;
+  let matched = 0;
+  let missCount = 0;
 
-  startScreen.classList.add("hidden");
-  gameScreen.classList.remove("hidden");
+  let startTime = 0;
 
-  showCountdown(() => {
-    setupCards();
-    startTime = Date.now();
-    lock = false;
-  });
-}
+  /* =====================
+     モード設定
+  ===================== */
+  function setMode(selected) {
+    mode = selected;
 
-
-/* =====================
-  カウントダウン
-===================== */
-function showCountdown(callback) {
-  countdownEl.classList.remove("hidden");
-
-  countdownEl.textContent = "3";
-  seStart.currentTime = 0;
-  seStart.play();
-
-  setTimeout(() => {
-    countdownEl.textContent = "2";
-    seStart.currentTime = 0;
-    seStart.play();
-  }, 1000);
-
-  setTimeout(() => {
-    countdownEl.textContent = "1";
-    seStart.currentTime = 0;
-    seStart.play();
-  }, 2000);
-
-  setTimeout(() => {
-    countdownEl.classList.add("hidden");
-    callback(); // ← 必ず呼ばれる
-  }, 3000);
-}
-
-
-/* =====================
-  カード生成
-===================== */
-function setupCards() {
-  const pairCount = MODES[mode].pairs;
-  const useImages = images.slice(0, pairCount);
-  cards = [...useImages, ...useImages]
-    .sort(() => Math.random() - 0.5);
-
-  cards.forEach(src => {
-    const card = document.createElement('div');
-    card.className = 'card';
-    card.dataset.image = src;
-    card.textContent = '？';
-
-    card.addEventListener('click', () => onCardClick(card));
-    board.appendChild(card);
-  });
-}
-
-/* =====================
-  カード処理
-===================== */
-function onCardClick(card) {
-  if (lock || card.classList.contains('open')) return;
-
-  openCard(card);
-
-  if (!firstCard) {
-    firstCard = card;
-    return;
+    if (mode === "easy") cardCount = 6;
+    if (mode === "normal") cardCount = 12;
+    if (mode === "hard") cardCount = 12;
   }
 
-  lock = true;
+  /* =====================
+     スタート
+  ===================== */
+  modeBtns.forEach(btn => {
+    btn.addEventListener("click", () => {
+      setMode(btn.dataset.mode);
+      startGame();
+    });
+  });
 
-  if (firstCard.dataset.image === card.dataset.image) {
-    seOk.play();
-    matched += 2;
+  /* =====================
+     ゲーム開始
+  ===================== */
+  function startGame() {
+    // 初期化
+    board.innerHTML = "";
+    missArea.innerHTML = "";
+    resultScreen.classList.add("hidden");
+
     firstCard = null;
-    lock = false;
+    matched = 0;
+    missCount = 0;
+    lock = true;
 
-    if (matched === cards.length) {
-      clearGame();
-    }
-  } else {
-    seNg.play();
-    missCount++;
-    updateMiss();
+    startScreen.classList.add("hidden");
+    gameScreen.classList.remove("hidden");
+
+    showCountdown(() => {
+      setupCards();
+      startTime = Date.now();
+      lock = false;
+    });
+  }
+
+  /* =====================
+     カウントダウン（安定版）
+  ===================== */
+  function showCountdown(callback) {
+    countdownEl.classList.remove("hidden");
+
+    countdownEl.textContent = "3";
+    seCount.currentTime = 0;
+    seCount.play();
 
     setTimeout(() => {
-      closeCard(firstCard);
-      closeCard(card);
+      countdownEl.textContent = "2";
+      seCount.currentTime = 0;
+      seCount.play();
+    }, 1000);
+
+    setTimeout(() => {
+      countdownEl.textContent = "1";
+      seCount.currentTime = 0;
+      seCount.play();
+    }, 2000);
+
+    setTimeout(() => {
+      countdownEl.classList.add("hidden");
+      callback();
+    }, 3000);
+  }
+
+  /* =====================
+     カード生成
+  ===================== */
+  function setupCards() {
+    const pairCount = cardCount / 2;
+    const images = [];
+
+    for (let i = 1; i <= pairCount; i++) {
+      images.push(i, i);
+    }
+
+    images.sort(() => Math.random() - 0.5);
+
+    images.forEach(num => {
+      const card = document.createElement("div");
+      card.className = "card";
+
+      const img = document.createElement("img");
+      img.src = "img/back.jpg";
+      img.dataset.num = num;
+
+      card.appendChild(img);
+      board.appendChild(card);
+
+      card.addEventListener("click", () => onCardClick(card, img));
+    });
+  }
+
+  /* =====================
+     カードクリック
+  ===================== */
+  function onCardClick(card, img) {
+    if (lock) return;
+    if (card.classList.contains("open")) return;
+
+    seFlip.currentTime = 0;
+    seFlip.play();
+
+    img.src = `img/${img.dataset.num}.jpg`;
+    card.classList.add("open");
+
+    if (!firstCard) {
+      firstCard = card;
+      return;
+    }
+
+    lock = true;
+
+    const firstImg = firstCard.querySelector("img");
+
+    if (firstImg.dataset.num === img.dataset.num) {
+      // 正解
+      seMatch.currentTime = 0;
+      seMatch.play();
+
+      matched += 2;
       firstCard = null;
       lock = false;
 
-      if (MODES[mode].missLimit &&
-          missCount >= MODES[mode].missLimit) {
-        gameOver();
+      if (matched === cardCount) {
+        gameClear();
       }
-    }, 800);
+    } else {
+      // 不正解
+      missCount++;
+      seMiss.currentTime = 0;
+      seMiss.play();
+
+      updateMissUI();
+
+      setTimeout(() => {
+        firstImg.src = "img/back.jpg";
+        img.src = "img/back.jpg";
+
+        firstCard.classList.remove("open");
+        card.classList.remove("open");
+
+        firstCard = null;
+        lock = false;
+
+        if (mode === "hard" && missCount >= 5) {
+          gameOver();
+        }
+      }, 800);
+    }
   }
-}
 
-/* =====================
-  表示制御
-===================== */
-function openCard(card) {
-  card.classList.add('open');
-  card.textContent = '';
-  card.style.backgroundImage = `url(${card.dataset.image})`;
-}
-
-function closeCard(card) {
-  card.classList.remove('open');
-  card.textContent = '？';
-  card.style.backgroundImage = '';
-}
-
-function updateMiss() {
-  missArea.innerHTML = '';
-  if (!MODES[mode].missLimit) return;
-
-  for (let i = 0; i < missCount; i++) {
-    const span = document.createElement('span');
-    span.textContent = '🐾';
-    missArea.appendChild(span);
+  /* =====================
+     ミス表示（肉球）
+  ===================== */
+  function updateMissUI() {
+    missArea.innerHTML = "";
+    for (let i = 0; i < missCount; i++) {
+      const span = document.createElement("span");
+      span.textContent = "🐾";
+      missArea.appendChild(span);
+    }
   }
-}
 
-/* =====================
-  クリア / ゲームオーバー
-===================== */
-function clearGame() {
-  seClear.play();
-  showResult('PERFECT!! 🎉');
-}
+  /* =====================
+     クリア
+  ===================== */
+  function gameClear() {
+    seClear.currentTime = 0;
+    seClear.play();
 
-function gameOver() {
-  showResult('BAD END…');
-}
+    const time = ((Date.now() - startTime) / 1000).toFixed(1);
 
-function showResult(text) {
-  lock = true;
-  const time = ((Date.now() - startTime) / 1000).toFixed(1);
+    resultText.textContent = "PERFECT!";
+    timeText.textContent = `TIME : ${time}s`;
 
-  resultText.textContent = text;
-  timeText.textContent = `TIME : ${time}s`;
-  resultScreen.classList.remove('hidden');
-}
+    resultScreen.classList.remove("hidden");
+  }
 
-/* =====================
-  ボタン
-===================== */
-retryBtn.addEventListener('click', startGame);
+  /* =====================
+     ゲームオーバー
+  ===================== */
+  function gameOver() {
+    resultText.textContent = "BAD END";
+    timeText.textContent = "";
 
-backBtn.addEventListener('click', () => {
-  gameScreen.classList.add('hidden');
-  startScreen.classList.remove('hidden');
+    resultScreen.classList.remove("hidden");
+    lock = true;
+  }
+
+  /* =====================
+     ボタン
+  ===================== */
+  retryBtn.addEventListener("click", () => {
+    startGame();
+  });
+
+  backBtn.addEventListener("click", () => {
+    gameScreen.classList.add("hidden");
+    startScreen.classList.remove("hidden");
+  });
+
 });
+
+
 
