@@ -1,26 +1,12 @@
 document.addEventListener("DOMContentLoaded", () => {
   /* =========================
-     画面（state）管理
+     DOM取得（必須）
   ========================= */
   const startScreen  = document.getElementById("startScreen");
   const helpScreen   = document.getElementById("helpScreen");
   const gameScreen   = document.getElementById("gameScreen");
   const resultScreen = document.getElementById("resultScreen");
 
-  const screens = [startScreen, helpScreen, gameScreen, resultScreen];
-
-  function setScreen(name) {
-    // name: "start" | "help" | "game" | "result"
-    screens.forEach(s => s.classList.add("hidden"));
-    if (name === "start")  startScreen.classList.remove("hidden");
-    if (name === "help")   helpScreen.classList.remove("hidden");
-    if (name === "game")   gameScreen.classList.remove("hidden");
-    if (name === "result") resultScreen.classList.remove("hidden");
-  }
-
-  /* =========================
-     DOM
-  ========================= */
   const board       = document.getElementById("board");
   const countdownEl = document.getElementById("countdown");
   const missArea    = document.getElementById("missArea");
@@ -30,136 +16,139 @@ document.addEventListener("DOMContentLoaded", () => {
   const retryBtn    = document.getElementById("retryBtn");
   const backBtn     = document.getElementById("backBtn");
 
-  const helpBtn       = document.getElementById("helpBtn");
-  const backFromHelp  = document.getElementById("backFromHelp");
+  const helpBtn      = document.getElementById("helpBtn");
+  const backFromHelp = document.getElementById("backFromHelp");
 
+  const soundToggleBtn = document.getElementById("soundToggle");
   const modeBtns = document.querySelectorAll(".modeBtn");
 
   /* =========================
-     効果音（devフォルダから見て1つ上）
-     直下に置いてある前提：
-       /beep.wav
-       /meow.wav
-       /meowStart.wav
-       /meow_long.wav
-       /meow_miss.wav
+     画面遷移（state管理）
   ========================= */
-// ===== 効果音 =====
-const se = {
-  beep:  new Audio("../beep.wav"),
-  meow:  new Audio("../meow.wav"),
-  start: new Audio("../meowStart.wav"),
-  clear: new Audio("../meow_long.wav"),
-  miss:  new Audio("../meow_miss.wav"),
-};
+  const screens = {
+    start: startScreen,
+    help: helpScreen,
+    game: gameScreen,
+    result: resultScreen,
+  };
 
-// ===== サウンドON/OFF（唯一の状態）=====
-let soundEnabled = localStorage.getItem("soundEnabled") === "1";
+  function setScreen(name) {
+    Object.values(screens).forEach(el => el.classList.add("hidden"));
+    const target = screens[name];
+    if (target) target.classList.remove("hidden");
+  }
 
-// iOS解放済みフラグ（解放はON時に1回だけ）
-let audioUnlocked = false;
+  /* =========================
+     効果音（devから見て1つ上）
+  ========================= */
+  const se = {
+    beep:  new Audio("../beep.wav"),
+    meow:  new Audio("../meow.wav"),
+    start: new Audio("../meowStart.wav"),
+    clear: new Audio("../meow_long.wav"),
+    miss:  new Audio("../meow_miss.wav"),
+  };
 
-function updateSoundButton() {
-  const btn = document.getElementById("soundToggle");
-  if (!btn) return;
+  // ON/OFF状態（保存）
+  let soundEnabled = localStorage.getItem("soundEnabled") === "1";
+  let audioUnlocked = false;
 
-  btn.setAttribute("aria-pressed", soundEnabled ? "true" : "false");
-  btn.textContent = soundEnabled ? "🔊 SOUND: ON" : "🔇 SOUND: OFF";
-}
+  function updateSoundButton() {
+    if (!soundToggleBtn) return;
+    soundToggleBtn.setAttribute("aria-pressed", soundEnabled ? "true" : "false");
+    soundToggleBtn.textContent = soundEnabled ? "🔊 SOUND: ON" : "🔇 SOUND: OFF";
+  }
 
-function unlockAudioOnce() {
-  if (audioUnlocked) return;
-  audioUnlocked = true;
+  // iOS対策：最初のユーザー操作で一度だけ「解放」
+  function unlockAudioOnce() {
+    if (audioUnlocked) return;
+    audioUnlocked = true;
 
-  Object.values(se).forEach(a => {
+    Object.values(se).forEach(a => {
+      try {
+        a.volume = 0;
+        a.play().catch(() => {});
+        a.pause();
+        a.currentTime = 0;
+        a.volume = 1;
+      } catch (e) {}
+    });
+  }
+
+  function playSE(key, volume = 1.0) {
+    if (!soundEnabled) return;
+    const a = se[key];
+    if (!a) return;
     try {
-      a.volume = 0;
-      a.play().catch(() => {});
       a.pause();
       a.currentTime = 0;
-      a.volume = 1;
+      a.volume = volume;
+      a.play().catch(() => {});
     } catch (e) {}
-  });
-}
+  }
 
-function playSE(key, volume = 1.0) {
-  if (!soundEnabled) return;
-
-  const a = se[key];
-  if (!a) return;
-
-  try {
-    a.pause();
-    a.currentTime = 0;
-    a.volume = volume;
-    a.play().catch(() => {});
-  } catch (e) {}
-}
-
-// ===== ボタンのイベント（これ1つだけ）=====
-(function initSoundToggle() {
-  const btn = document.getElementById("soundToggle");
-  if (!btn) return;
-
-  updateSoundButton();
-
-  btn.addEventListener("pointerdown", (e) => {
-    e.preventDefault();
-
-    soundEnabled = !soundEnabled;
-    localStorage.setItem("soundEnabled", soundEnabled ? "1" : "0");
-
-    if (soundEnabled) {
-      unlockAudioOnce();
-      playSE("meow", 0.8); // ON確認
-    }
-
+  // サウンドトグル（ボタンは1つだけ）
+  if (soundToggleBtn) {
     updateSoundButton();
-  });
-})();
+    soundToggleBtn.addEventListener("pointerdown", (e) => {
+      e.preventDefault();
 
+      soundEnabled = !soundEnabled;
+      localStorage.setItem("soundEnabled", soundEnabled ? "1" : "0");
+
+      if (soundEnabled) {
+        unlockAudioOnce();
+        playSE("meow", 0.8); // ON確認
+      }
+
+      updateSoundButton();
+    });
+  }
+
+  /* =========================
+     ゲーム設定（3モード）
+  ========================= */
+  const MODE_SETTING = {
+    easy:   { cards: 6,  pairs: 3, missLimit: Infinity },
+    normal: { cards: 12, pairs: 6, missLimit: Infinity },
+    hard:   { cards: 12, pairs: 6, missLimit: 5 },
+  };
 
   /* =========================
      ゲーム状態
   ========================= */
   let mode = "easy";
-  let cardCount = 6;      // 6 or 12
-  let pairCount = 3;      // 3 or 6
+  let cardCount = 6;
+  let pairCount = 3;
+
   let lockBoard = true;
+  let first = null;   // { cardEl, imgEl, name }
+  let second = null;
 
-  let firstCard = null;   // { cardEl, imgEl, name }
-  let secondCard = null;
-
-  let matchedCount = 0;   // 揃った枚数
-  let missCount = 0;      // ミス回数（HARDのみ5でBAD）
-
+  let matchedCount = 0;
+  let missCount = 0;
   let startTime = 0;
 
-  const MODE_SETTING = {
-    easy:   { cards: 6,  pairs: 3,  missLimit: Infinity },
-    normal: { cards: 12, pairs: 6,  missLimit: Infinity },
-    hard:   { cards: 12, pairs: 6,  missLimit: 5 },
-  };
-
   /* =========================
-     画面：スタート / 説明
+     画面：説明
   ========================= */
   if (helpBtn) {
     helpBtn.addEventListener("pointerdown", () => {
       setScreen("help");
     });
   }
-
   if (backFromHelp) {
     backFromHelp.addEventListener("pointerdown", () => {
       setScreen("start");
     });
   }
 
+  /* =========================
+     モード選択
+  ========================= */
   modeBtns.forEach(btn => {
     btn.addEventListener("pointerdown", () => {
-      // iPhone対策：最初のタップで音を解放
-      unlockAudio();
+      unlockAudioOnce();
 
       mode = btn.dataset.mode || "easy";
       const s = MODE_SETTING[mode] || MODE_SETTING.easy;
@@ -171,26 +160,24 @@ function playSE(key, volume = 1.0) {
   });
 
   /* =========================
-     ボタン：結果画面
+     結果画面ボタン
   ========================= */
-  retryBtn.addEventListener("pointerdown", () => {
-    // もう1回 = 同じモードで再スタート
-    unlockAudio();
-    startFlow();
-  });
+  if (retryBtn) {
+    retryBtn.addEventListener("pointerdown", () => {
+      unlockAudioOnce();
+      startFlow(); // 同じモードで再開
+    });
+  }
 
-  backBtn.addEventListener("pointerdown", () => {
-    // モード選択に戻る
-    resetAll();
-    setScreen("start");
-  });
+  if (backBtn) {
+    backBtn.addEventListener("pointerdown", () => {
+      resetAll();
+      setScreen("start");
+    });
+  }
 
   /* =========================
-     ゲーム開始フロー
-     1) 初期化
-     2) game画面へ
-     3) カウントダウン（ピッピッにゃ）
-     4) カード生成
+     開始フロー
   ========================= */
   function startFlow() {
     resetAll();
@@ -203,26 +190,26 @@ function playSE(key, volume = 1.0) {
   }
 
   function resetAll() {
-    // UI
-    board.innerHTML = "";
-    missArea.innerHTML = "";
-    resultScreen.classList.add("hidden");
-    countdownEl.classList.add("hidden");
-    countdownEl.textContent = "";
+    // UI初期化
+    if (board) board.innerHTML = "";
+    if (missArea) missArea.textContent = "";
+    if (countdownEl) {
+      countdownEl.classList.add("hidden");
+      countdownEl.textContent = "";
+    }
 
-    // 状態
+    // 状態初期化
     lockBoard = true;
-    firstCard = null;
-    secondCard = null;
+    first = null;
+    second = null;
     matchedCount = 0;
     missCount = 0;
 
-    // HARDは肉球表示を初期化
     updateMissUI();
   }
 
   /* =========================
-     カウントダウン（3,2 = beep / 1の次で startにゃ）
+     カウントダウン（ピッ、ピッ、にゃ！）
   ========================= */
   function startCountdown(done) {
     lockBoard = true;
@@ -231,7 +218,6 @@ function playSE(key, volume = 1.0) {
     countdownEl.textContent = String(count);
     countdownEl.classList.remove("hidden");
 
-    // 最初の「ピッ」
     playSE("beep", 0.6);
 
     const timer = setInterval(() => {
@@ -239,19 +225,15 @@ function playSE(key, volume = 1.0) {
 
       if (count === 0) {
         clearInterval(timer);
-
         countdownEl.classList.add("hidden");
         countdownEl.textContent = "";
 
-        // 最後の「にゃ！」
         playSE("start", 1.0);
-
         done();
         return;
       }
 
       countdownEl.textContent = String(count);
-      // 2,1 のところでも「ピッ」
       playSE("beep", 0.6);
     }, 1000);
   }
@@ -262,85 +244,86 @@ function playSE(key, volume = 1.0) {
   function setupCards() {
     board.innerHTML = "";
 
-    // 枚数で列数を変える（6枚=3列、12枚=4列）
-    if (cardCount === 6) {
-      board.style.gridTemplateColumns = "repeat(3, 1fr)";
-    } else {
-      board.style.gridTemplateColumns = "repeat(4, 1fr)";
-    }
+    // 列数（6枚=3列、12枚=4列）
+    if (cardCount === 6) board.style.gridTemplateColumns = "repeat(3, 1fr)";
+    else board.style.gridTemplateColumns = "repeat(4, 1fr)";
 
-    // 001..006 を作る（pairs分）
+    // 001.. (pairCount)
     const names = [];
     for (let i = 1; i <= pairCount; i++) {
       const n = String(i).padStart(3, "0");
       names.push(n, n);
     }
 
-    // シャッフル
+    // shuffle
     names.sort(() => Math.random() - 0.5);
 
     names.forEach(name => {
-      const card = document.createElement("div");
-      card.className = "card";
-      card.dataset.name = name;
+      const cardEl = document.createElement("div");
+      cardEl.className = "card";
+      cardEl.dataset.name = name;
 
-      const img = document.createElement("img");
-      img.src = "../img/back.jpg"; // devから1つ上のimg
-      img.alt = "card";
+      const imgEl = document.createElement("img");
+      imgEl.src = "../img/back.jpg";
+      imgEl.alt = "card";
 
-      card.appendChild(img);
-      board.appendChild(card);
+      cardEl.appendChild(imgEl);
+      board.appendChild(cardEl);
 
-      card.addEventListener("pointerdown", () => onCardTap(card, img, name));
+      cardEl.addEventListener("pointerdown", () => onCardTap(cardEl, imgEl, name));
     });
   }
 
   /* =========================
-     タップ処理
+     タップ
   ========================= */
   function onCardTap(cardEl, imgEl, name) {
     if (lockBoard) return;
 
-    // 同じカード連打防止
-    if (firstCard && firstCard.cardEl === cardEl) return;
-
     // 既に揃ったカードは無視
     if (cardEl.classList.contains("matched")) return;
+
+    // 同じカード連打防止
+    if (first && first.cardEl === cardEl) return;
 
     // 表にする
     imgEl.src = `../img/${name}.jpg`;
 
-    if (!firstCard) {
-      firstCard = { cardEl, imgEl, name };
+    if (!first) {
+      first = { cardEl, imgEl, name };
       return;
     }
 
-    secondCard = { cardEl, imgEl, name };
+    second = { cardEl, imgEl, name };
     lockBoard = true;
 
     checkMatch();
   }
 
   /* =========================
-     判定（一致/不一致）
+     判定
   ========================= */
   function checkMatch() {
-    if (!firstCard || !secondCard) {
+    if (!first || !second) {
       lockBoard = false;
       return;
     }
 
-    if (firstCard.name === secondCard.name) {
-      // 正解
+    // 正解
+    if (first.name === second.name) {
       playSE("meow", 1.0);
 
-      firstCard.cardEl.classList.add("matched");
-      secondCard.cardEl.classList.add("matched");
+      first.cardEl.classList.add("matched");
+      second.cardEl.classList.add("matched");
 
       matchedCount += 2;
 
-      resetTurn();
+      // 次へ
+      first = null;
+      second = null;
+      lockBoard = false;
 
+      // クリア判定
       if (matchedCount === cardCount) {
         setTimeout(showClear, 600);
       }
@@ -353,7 +336,7 @@ function playSE(key, volume = 1.0) {
     updateMissUI();
 
     setTimeout(() => {
-      // HARDのBAD END判定（ここで完結させる）
+      // HARDのBAD END（ここで完結）
       const limit = MODE_SETTING[mode].missLimit;
       if (missCount >= limit) {
         showBadEnd();
@@ -361,48 +344,43 @@ function playSE(key, volume = 1.0) {
       }
 
       // 裏に戻す
-      firstCard.imgEl.src = "../img/back.jpg";
-      secondCard.imgEl.src = "../img/back.jpg";
+      first.imgEl.src = "../img/back.jpg";
+      second.imgEl.src = "../img/back.jpg";
 
-      resetTurn();
+      // 次へ
+      first = null;
+      second = null;
+      lockBoard = false;
     }, 900);
   }
 
-  function resetTurn() {
-    firstCard = null;
-    secondCard = null;
-    lockBoard = false;
+  /* =========================
+     HARD用：😿ミス表示
+  ========================= */
+  function updateMissUI() {
+    if (!missArea) return;
+
+    if (mode !== "hard") {
+      missArea.textContent = "";
+      return;
+    }
+
+    missArea.textContent = "😿".repeat(missCount);
   }
-
-  // HARD用：ミス表示（😿を増やす）
-function updateMissUI() {
-  if (mode !== "hard") {
-    missArea.textContent = "";
-    return;
-  }
-
-  // ミス回数分だけ 😿 を表示
-  missArea.textContent = "😿".repeat(missCount);
-}
-
 
   /* =========================
-     結果表示（1か所で管理）
+     結果表示
   ========================= */
   function showResult(title, sub = "") {
     resultText.textContent = title;
     timeText.textContent = sub;
-
     setScreen("result");
   }
 
   function showClear() {
     const time = ((Date.now() - startTime) / 1000).toFixed(1);
-
     playSE("clear", 1.0);
     showResult("PERFECT!!", `TIME : ${time}s`);
-
-    // ※紙吹雪は後で追加OK（ここに足す）
   }
 
   function showBadEnd() {
@@ -414,6 +392,7 @@ function updateMissUI() {
   ========================= */
   setScreen("start");
 });
+
 
 
 
