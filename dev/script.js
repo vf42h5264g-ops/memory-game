@@ -44,44 +44,33 @@ document.addEventListener("DOMContentLoaded", () => {
        /meow_long.wav
        /meow_miss.wav
   ========================= */
-  const se = {
-    beep:  new Audio("../beep.wav"),
-    meow:  new Audio("../meow.wav"),
-    start: new Audio("../meowStart.wav"),
-    clear: new Audio("../meow_long.wav"),
-    miss:  new Audio("../meow_miss.wav"),
-  };
+// ===== 効果音 =====
+const se = {
+  beep:  new Audio("../beep.wav"),
+  meow:  new Audio("../meow.wav"),
+  start: new Audio("../meowStart.wav"),
+  clear: new Audio("../meow_long.wav"),
+  miss:  new Audio("../meow_miss.wav"),
+};
 
-  let soundEnabled = false;
-
-  function unlockAudio() {
-    if (soundEnabled) return;
-    // iOS: ユーザー操作中に一度でも再生して「解放」する
-    Object.values(se).forEach(a => {
-      try {
-        a.volume = 0;
-        a.play().catch(() => {});
-        a.pause();
-        a.currentTime = 0;
-        a.volume = 1;
-      } catch (e) {}
-    });
-    soundEnabled = true;
-  }
-
-  const soundToggleBtn = document.getElementById("soundToggle");
-
-// 保存：前回の設定を保持（任意）
+// ===== サウンドON/OFF（唯一の状態）=====
 let soundEnabled = localStorage.getItem("soundEnabled") === "1";
 
+// iOS解放済みフラグ（解放はON時に1回だけ）
+let audioUnlocked = false;
+
 function updateSoundButton() {
-  if (!soundToggleBtn) return;
-  soundToggleBtn.setAttribute("aria-pressed", soundEnabled ? "true" : "false");
-  soundToggleBtn.textContent = soundEnabled ? "🔊 SOUND: ON" : "🔇 SOUND: OFF";
+  const btn = document.getElementById("soundToggle");
+  if (!btn) return;
+
+  btn.setAttribute("aria-pressed", soundEnabled ? "true" : "false");
+  btn.textContent = soundEnabled ? "🔊 SOUND: ON" : "🔇 SOUND: OFF";
 }
 
-// iOS対策：ONにした瞬間に音を解放
-function unlockAudio() {
+function unlockAudioOnce() {
+  if (audioUnlocked) return;
+  audioUnlocked = true;
+
   Object.values(se).forEach(a => {
     try {
       a.volume = 0;
@@ -93,11 +82,12 @@ function unlockAudio() {
   });
 }
 
-// 実際に鳴らす関数
 function playSE(key, volume = 1.0) {
   if (!soundEnabled) return;
+
   const a = se[key];
   if (!a) return;
+
   try {
     a.pause();
     a.currentTime = 0;
@@ -106,36 +96,28 @@ function playSE(key, volume = 1.0) {
   } catch (e) {}
 }
 
-if (soundToggleBtn) {
+// ===== ボタンのイベント（これ1つだけ）=====
+(function initSoundToggle() {
+  const btn = document.getElementById("soundToggle");
+  if (!btn) return;
+
   updateSoundButton();
 
-  soundToggleBtn.addEventListener("pointerdown", (e) => {
+  btn.addEventListener("pointerdown", (e) => {
     e.preventDefault();
 
     soundEnabled = !soundEnabled;
     localStorage.setItem("soundEnabled", soundEnabled ? "1" : "0");
 
     if (soundEnabled) {
-      unlockAudio();          // ← ONにした瞬間に解放
-      playSE("meow", 0.8);    // ← ON確認用（短く）
+      unlockAudioOnce();
+      playSE("meow", 0.8); // ON確認
     }
 
     updateSoundButton();
   });
-}
+})();
 
-
-  function playSE(key, volume = 1.0) {
-    if (!soundEnabled) return;
-    const a = se[key];
-    if (!a) return;
-    try {
-      a.pause();
-      a.currentTime = 0;
-      a.volume = volume;
-      a.play().catch(() => {});
-    } catch (e) {}
-  }
 
   /* =========================
      ゲーム状態
