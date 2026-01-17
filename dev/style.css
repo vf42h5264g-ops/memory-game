@@ -87,6 +87,11 @@ body {
   transform: scale(0.98);
 }
 
+.hidden{
+  display:none !important;
+  pointer-events:none !important;
+}
+
 
 
 
