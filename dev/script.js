@@ -69,6 +69,62 @@ document.addEventListener("DOMContentLoaded", () => {
     soundEnabled = true;
   }
 
+  const soundToggleBtn = document.getElementById("soundToggle");
+
+// 保存：前回の設定を保持（任意）
+let soundEnabled = localStorage.getItem("soundEnabled") === "1";
+
+function updateSoundButton() {
+  if (!soundToggleBtn) return;
+  soundToggleBtn.setAttribute("aria-pressed", soundEnabled ? "true" : "false");
+  soundToggleBtn.textContent = soundEnabled ? "🔊 SOUND: ON" : "🔇 SOUND: OFF";
+}
+
+// iOS対策：ONにした瞬間に音を解放
+function unlockAudio() {
+  Object.values(se).forEach(a => {
+    try {
+      a.volume = 0;
+      a.play().catch(() => {});
+      a.pause();
+      a.currentTime = 0;
+      a.volume = 1;
+    } catch (e) {}
+  });
+}
+
+// 実際に鳴らす関数
+function playSE(key, volume = 1.0) {
+  if (!soundEnabled) return;
+  const a = se[key];
+  if (!a) return;
+  try {
+    a.pause();
+    a.currentTime = 0;
+    a.volume = volume;
+    a.play().catch(() => {});
+  } catch (e) {}
+}
+
+if (soundToggleBtn) {
+  updateSoundButton();
+
+  soundToggleBtn.addEventListener("pointerdown", (e) => {
+    e.preventDefault();
+
+    soundEnabled = !soundEnabled;
+    localStorage.setItem("soundEnabled", soundEnabled ? "1" : "0");
+
+    if (soundEnabled) {
+      unlockAudio();          // ← ONにした瞬間に解放
+      playSE("meow", 0.8);    // ← ON確認用（短く）
+    }
+
+    updateSoundButton();
+  });
+}
+
+
   function playSE(key, volume = 1.0) {
     if (!soundEnabled) return;
     const a = se[key];
