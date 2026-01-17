@@ -392,17 +392,17 @@ if (soundToggleBtn) {
     lockBoard = false;
   }
 
-  /* =========================
-     HARD用：肉球UI
-  ========================= */
-  function updateMissUI() {
-    if (mode !== "hard") {
-      missArea.textContent = "";
-      return;
-    }
-    // 5回まで見える化（今のミス数だけ🐾を増やす）
-    missArea.textContent = "🐾".repeat(missCount);
+  // HARD用：ミス表示（😿を増やす）
+function updateMissUI() {
+  if (mode !== "hard") {
+    missArea.textContent = "";
+    return;
   }
+
+  // ミス回数分だけ 😿 を表示
+  missArea.textContent = "😿".repeat(missCount);
+}
+
 
   /* =========================
      結果表示（1か所で管理）
