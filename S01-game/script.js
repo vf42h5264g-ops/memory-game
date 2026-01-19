@@ -327,12 +327,68 @@ function showTequilaLose() {
   overlay.style.justifyContent = "center";
   overlay.style.gap = "18px";
 
-  // v03を画面いっぱい（実質フル）
+  // v03を大きく表示
   const img = document.createElement("img");
   img.src = "img/v03.jpg";
   img.alt = "v03";
   img.style.width = "100vw";
-  img
+  img.style.height = "70vh";
+  img.style.objectFit = "contain";
+
+  // テキスト
+  const text = document.createElement("div");
+  text.textContent = "GO！テキーラ！！";
+  text.style.color = "#fff";
+  text.style.fontSize = "clamp(28px, 6vw, 64px)";
+  text.style.fontWeight = "800";
+  text.style.letterSpacing = "0.04em";
+  text.style.textShadow = "0 0 10px rgba(255,255,255,0.25)";
+
+  // ボタンエリア（下部）
+  const btnRow = document.createElement("div");
+  btnRow.style.position = "absolute";
+  btnRow.style.left = "0";
+  btnRow.style.right = "0";
+  btnRow.style.bottom = "18px";
+  btnRow.style.display = "flex";
+  btnRow.style.justifyContent = "center";
+  btnRow.style.gap = "12px";
+  btnRow.style.padding = "0 16px";
+
+  const retry = document.createElement("button");
+  retry.textContent = "もう一度";
+  retry.style.padding = "12px 18px";
+  retry.style.fontSize = "18px";
+  retry.style.borderRadius = "12px";
+  retry.style.border = "none";
+  retry.style.cursor = "pointer";
+  retry.addEventListener("pointerdown", () => {
+    overlay.remove();
+    startCountdown(); // 同じモードのまま再挑戦
+  });
+
+  const back = document.createElement("button");
+  back.textContent = "モード選択";
+  back.style.padding = "12px 18px";
+  back.style.fontSize = "18px";
+  back.style.borderRadius = "12px";
+  back.style.border = "none";
+  back.style.cursor = "pointer";
+  back.addEventListener("pointerdown", () => {
+    overlay.remove();
+    setScreen("start");
+  });
+
+  btnRow.appendChild(retry);
+  btnRow.appendChild(back);
+
+  overlay.appendChild(img);
+  overlay.appendChild(text);
+  overlay.appendChild(btnRow);
+
+  document.body.appendChild(overlay);
+}
+
 
 
 
