@@ -87,6 +87,7 @@ document.getElementById("retryBtn").onclick = () => startCountdown();
 function startCountdown() {
   setScreen("game");
   board.innerHTML = "";
+  applyBoardLayout(); // ★ 追加
   missArea.innerHTML = "";
 
   // 状態リセット
