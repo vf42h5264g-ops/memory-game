@@ -84,7 +84,7 @@ function startGame() {
     card.className = "card";
 
     const img = document.createElement("img");
-    img.src = "img/v01.jpg";
+    img.src = "img/vback.jpg";
 
     card.appendChild(img);
     board.appendChild(card);
@@ -104,7 +104,7 @@ function startGame() {
           checkClear();
         } else {
           setTimeout(() => {
-            img.src = first.src = "img/v01.jpg";
+            img.src = first.src = "img/vback.jpg";
             first = null;
             lock = false;
             miss++;
@@ -119,7 +119,7 @@ function startGame() {
 // ===== 判定 =====
 function checkClear() {
   const open = [...document.querySelectorAll(".card img")]
-    .every(img => !img.src.includes("v01"));
+    .every(img => !img.src.includes("vback"));
 
   if (open) {
     const time = ((Date.now() - startTime) / 1000).toFixed(1);
