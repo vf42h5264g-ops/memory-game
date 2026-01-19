@@ -1,88 +1,127 @@
-body {
-  margin: 0;
-  font-family: sans-serif;
-  background: #111;
-  color: #fff;
-  text-align: center;
+/* =========================
+   共通：非表示
+========================= */
+.hidden {
+  display: none !important;
 }
 
-.screen {
+/* =========================
+   画面レイアウト（ざっくり）
+   ※あなたのHTMLに合わせて調整OK
+========================= */
+#startScreen,
+#helpScreen,
+#gameScreen,
+#resultScreen {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 16px;
+  box-sizing: border-box;
+}
+
+button {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+/* =========================
+   カウントダウン表示
+========================= */
+#countdown {
   position: fixed;
   inset: 0;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-}
-
-.hidden {
-  display: none;
-  pointer-events: none;
-}
-
-/* START */
-.modeBtns {
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
-}
-
-.modeBtn {
-  background: orange;
-  padding: 15px 40px;
-  border-radius: 12px;
-  font-size: 24px;
-}
-
-#helpBtn {
-  position: fixed;
-  bottom: 20px;
-  right: 20px;
-  font-size: 24px;
-}
-
-/* GAME */
-#board {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 10px;
-  width: 90vw;
-  max-width: 400px;
+  place-items: center;
+  font-size: clamp(64px, 18vw, 140px);
+  font-weight: 900;
+  color: #fff;
+  text-shadow: 0 6px 24px rgba(0,0,0,0.45);
+  background: rgba(0,0,0,0.35);
+  z-index: 5000;
 }
 
+/* =========================
+   盤面（グリッド）
+========================= */
+#board {
+  width: min(980px, 94vw);
+  margin: 0 auto;
+  display: grid;
+  gap: 10px;
+  align-content: center;
+  justify-content: center;
+
+  /* デフォ：6列（12枚） */
+  grid-template-columns: repeat(6, minmax(54px, 1fr));
+}
+
+/* 画面が狭い時は自動で列数を減らす */
+@media (max-width: 560px) {
+  #board {
+    grid-template-columns: repeat(4, minmax(60px, 1fr)); /* 12枚 → 4x3 */
+    gap: 8px;
+  }
+}
+@media (max-width: 360px) {
+  #board {
+    grid-template-columns: repeat(3, minmax(64px, 1fr)); /* 12枚 → 3x4 */
+    gap: 8px;
+  }
+}
+
+/* =========================
+   カード
+========================= */
 .card {
-  aspect-ratio: 1 / 1;
+  width: 100%;
+  aspect-ratio: 3 / 4; /* トランプっぽい比率 */
+  border-radius: 14px;
+  overflow: hidden;
+  position: relative;
+  cursor: pointer;
+  user-select: none;
+
+  /* ちょい立体感 */
+  box-shadow: 0 8px 18px rgba(0,0,0,0.18);
+  transform: translateZ(0);
+  transition: transform 0.08s ease;
+}
+
+.card:active {
+  transform: scale(0.98);
 }
 
 .card img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: cover; /* 画像をカードにフィット */
+  display: block;
 }
 
-#countdown {
-  font-size: 80px;
-  margin-bottom: 20px;
-}
-
-/* RESULT */
-#resultScreen button {
-  margin: 10px;
-  padding: 12px 30px;
+/* =========================
+   MISS表示エリア（HARD用・destroy進捗）
+========================= */
+#missArea {
+  width: min(980px, 94vw);
   font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-align: center;
+  margin-bottom: 6px;
 }
 
+/* =========================
+   結果画面（お好みで）
+========================= */
+#resultText {
+  font-size: clamp(28px, 7vw, 56px);
+  font-weight: 900;
+  letter-spacing: 0.04em;
+}
 
-
-
-
-
-
-
-
-
-
-
-
-
-
+#timeText {
+  f
