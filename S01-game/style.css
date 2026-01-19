@@ -134,7 +134,9 @@ button {
 }
 
 #timeText {
-  f
+  font-size: 18px;
+  opacity: 0.9;
+}
 /* ===== 全体背景 ===== */
 body {
   margin: 0;
