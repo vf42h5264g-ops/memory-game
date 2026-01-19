@@ -24,17 +24,6 @@ function setScreen(name) {
   screens[name].classList.remove("hidden");
 }
 
-function applyBoardLayout() {
-  board.classList.remove("layout-easy", "layout-12");
-
-  if (mode === "easy") {
-    board.classList.add("layout-easy");
-  } else {
-    // normal / hard / destroy
-    board.classList.add("layout-12");
-  }
-}
-
 // =====================
 // 要素
 // =====================
@@ -67,6 +56,19 @@ const modeSetting = {
 };
 
 // =====================
+// 盤面レイアウト切替
+// =====================
+function applyBoardLayout() {
+  board.classList.remove("layout-easy", "layout-12");
+
+  if (mode === "easy") {
+    board.classList.add("layout-easy"); // 6枚想定
+  } else {
+    board.classList.add("layout-12"); // 12枚想定（normal/hard/destroy）
+  }
+}
+
+// =====================
 // スタート
 // =====================
 document.querySelectorAll(".modeBtn").forEach(btn => {
@@ -76,10 +78,11 @@ document.querySelectorAll(".modeBtn").forEach(btn => {
   });
 });
 
-document.getElementById("helpBtn").onclick = () => setScreen("help");
-document.getElementById("backFromHelp").onclick = () => setScreen("start");
-document.getElementById("backBtn").onclick = () => setScreen("start");
-document.getElementById("retryBtn").onclick = () => startCountdown();
+// これらのボタンが万一無くても落ちないように（iPhone運用の保険）
+document.getElementById("helpBtn")?.addEventListener("click", () => setScreen("help"));
+document.getElementById("backFromHelp")?.addEventListener("click", () => setScreen("start"));
+document.getElementById("backBtn")?.addEventListener("click", () => setScreen("start"));
+document.getElementById("retryBtn")?.addEventListener("click", () => startCountdown());
 
 // =====================
 // カウントダウン
@@ -87,8 +90,9 @@ document.getElementById("retryBtn").onclick = () => startCountdown();
 function startCountdown() {
   setScreen("game");
   board.innerHTML = "";
-  applyBoardLayout(); // ★ 追加
   missArea.innerHTML = "";
+
+  applyBoardLayout();
 
   // 状態リセット
   miss = 0;
@@ -226,11 +230,11 @@ function startDestroyGame() {
       img.src = `img/${name}.jpg`;
       img.dataset.open = "1";
 
-      // v03 = 即負け（テキーラ演出）
+      // v03 = 即負け（GO!テキーラ!! + go.wav + ボタン）
       if (name === "v03") {
         lock = true;
         setTimeout(() => {
-          showTequilaLose(); // GO!テキーラ!! + go.wav + ボタン
+          showTequilaLose();
         }, 150);
         return;
       }
@@ -344,7 +348,7 @@ function showTequilaLose() {
   text.style.letterSpacing = "0.04em";
   text.style.textShadow = "0 0 10px rgba(255,255,255,0.25)";
 
-  // ボタンエリア（下部）
+  // ボタンエリア（下部固定）
   const btnRow = document.createElement("div");
   btnRow.style.position = "absolute";
   btnRow.style.left = "0";
@@ -364,7 +368,7 @@ function showTequilaLose() {
   retry.style.cursor = "pointer";
   retry.addEventListener("pointerdown", () => {
     overlay.remove();
-    startCountdown(); // 同じモードのまま再挑戦
+    startCountdown();
   });
 
   const back = document.createElement("button");
@@ -388,6 +392,65 @@ function showTequilaLose() {
 
   document.body.appendChild(overlay);
 }
+
+// =====================
+// 紙吹雪
+// =====================
+function launchConfetti(durationMs = 1200) {
+  const container = document.createElement("div");
+  container.style.position = "fixed";
+  container.style.inset = "0";
+  container.style.pointerEvents = "none";
+  container.style.overflow = "hidden";
+  container.style.zIndex = "9999";
+  document.body.appendChild(container);
+
+  const endAt = Date.now() + durationMs;
+
+  function spawn() {
+    const piece = document.createElement("div");
+    piece.style.position = "absolute";
+    piece.style.left = Math.random() * 100 + "vw";
+    piece.style.top = "-10px";
+    piece.style.width = 6 + Math.random() * 6 + "px";
+    piece.style.height = 10 + Math.random() * 10 + "px";
+    piece.style.background = `hsl(${Math.random() * 360},90%,60%)`;
+    piece.style.opacity = "0.9";
+    piece.style.borderRadius = "2px";
+
+    const drift = (Math.random() * 2 - 1) * 120;
+    const fall = 600 + Math.random() * 600;
+    const rotate = (Math.random() * 2 - 1) * 720;
+    const life = 900 + Math.random() * 700;
+    const start = performance.now();
+
+    container.appendChild(piece);
+
+    function animate(t) {
+      const p = Math.min(1, (t - start) / life);
+      piece.style.transform =
+        `translate(${drift * p}px, ${fall * p}px) rotate(${rotate * p}deg)`;
+      piece.style.opacity = (1 - p).toString();
+      if (p < 1) requestAnimationFrame(animate);
+      else piece.remove();
+    }
+    requestAnimationFrame(animate);
+  }
+
+  const interval = setInterval(() => {
+    for (let i = 0; i < 10; i++) spawn();
+    if (Date.now() > endAt) {
+      clearInterval(interval);
+      setTimeout(() => container.remove(), 800);
+    }
+  }, 100);
+}
+
+// =====================
+// 初期画面
+// =====================
+setScreen("start");
+
 
 
 
