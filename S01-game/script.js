@@ -79,10 +79,25 @@ document.querySelectorAll(".modeBtn").forEach(btn => {
 });
 
 // これらのボタンが万一無くても落ちないように（iPhone運用の保険）
-document.getElementById("helpBtn")?.addEventListener("click", () => setScreen("help"));
-document.getElementById("backFromHelp")?.addEventListener("click", () => setScreen("start"));
-document.getElementById("backBtn")?.addEventListener("click", () => setScreen("start"));
-document.getElementById("retryBtn")?.addEventListener("click", () => startCountdown());
+document.getElementById("helpBtn")?.addEventListener("pointerdown", (e) => {
+  e.preventDefault();
+  setScreen("help");
+});
+document.getElementById("backFromHelp")?.addEventListener("pointerdown", (e) => {
+  e.preventDefault();
+  setScreen("start");
+});
+
+document.getElementById("backBtn")?.addEventListener("pointerdown", (e) => {
+  e.preventDefault();
+  setScreen("start");
+});
+
+document.getElementById("retryBtn")?.addEventListener("pointerdown", (e) => {
+  e.preventDefault();
+  startCountdown();
+});
+
 
 // =====================
 // カウントダウン
