@@ -135,3 +135,48 @@ button {
 
 #timeText {
   f
+/* ===== 全体背景 ===== */
+body {
+  margin: 0;
+  background: linear-gradient(180deg, #1b1b1b, #000);
+  color: #fff;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+/* ===== 画面共通 ===== */
+.screen {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+}
+
+/* ===== モードボタン ===== */
+.modeBtns {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.modeBtn {
+  padding: 14px 22px;
+  background: #e53935;
+  color: #fff;
+  font-weight: 800;
+  border-radius: 12px;
+  cursor: pointer;
+  text-align: center;
+  box-shadow: 0 6px 14px rgba(0,0,0,0.4);
+}
+
+.modeBtn:active {
+  transform: scale(0.97);
+}
+
+/* ===== ヘルプボタン ===== */
+#helpBtn {
+  margin-top: 12px;
+  font-size: 24px;
+  cursor: p
