@@ -24,6 +24,17 @@ function setScreen(name) {
   screens[name].classList.remove("hidden");
 }
 
+function applyBoardLayout() {
+  board.classList.remove("layout-easy", "layout-12");
+
+  if (mode === "easy") {
+    board.classList.add("layout-easy");
+  } else {
+    // normal / hard / destroy
+    board.classList.add("layout-12");
+  }
+}
+
 // =====================
 // 要素
 // =====================
