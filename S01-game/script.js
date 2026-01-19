@@ -72,8 +72,8 @@ function startCountdown() {
 function startGame() {
   const total = modeSetting[mode];
   const names = [];
-  for (let i = 1; i <= total; i++) {
-    names.push(i.toString().padStart(3, "0"));
+  for (let i = 2; i <2+ total; i++) {
+    names.push("v"+i.toString().padStart(2, "0"));
   }
 
   const cards = [...names, ...names].sort(() => Math.random() - 0.5);
@@ -84,7 +84,7 @@ function startGame() {
     card.className = "card";
 
     const img = document.createElement("img");
-    img.src = "img/back.jpg";
+    img.src = "img/v01.jpg";
 
     card.appendChild(img);
     board.appendChild(card);
@@ -104,7 +104,7 @@ function startGame() {
           checkClear();
         } else {
           setTimeout(() => {
-            img.src = first.src = "img/back.jpg";
+            img.src = first.src = "img/v01.jpg";
             first = null;
             lock = false;
             miss++;
