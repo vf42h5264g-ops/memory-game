@@ -45,7 +45,7 @@ button {
 }
 
 /* =========================
-   盤面（グリッド）
+   盤面 共通
 ========================= */
 #board {
   width: min(980px, 94vw);
@@ -54,24 +54,34 @@ button {
   gap: 10px;
   align-content: center;
   justify-content: center;
-
-  /* デフォ：6列（12枚） */
-  grid-template-columns: repeat(6, minmax(54px, 1fr));
 }
 
-/* 画面が狭い時は自動で列数を減らす */
-@media (max-width: 560px) {
-  #board {
-    grid-template-columns: repeat(4, minmax(60px, 1fr)); /* 12枚 → 4x3 */
-    gap: 8px;
+/* =========================
+   モード別レイアウト
+========================= */
+
+/* easy：6枚 → 3×2 */
+#board.layout-easy {
+  grid-template-columns: repeat(3, minmax(80px, 1fr));
+}
+
+/* normal / hard / destroy：12枚 → 4×3 */
+#board.layout-12 {
+  grid-template-columns: repeat(4, minmax(72px, 1fr));
+}
+
+/* =========================
+   スマホ微調整
+========================= */
+@media (max-width: 480px) {
+  #board.layout-easy {
+    grid-template-columns: repeat(3, minmax(64px, 1fr));
+  }
+  #board.layout-12 {
+    grid-template-columns: repeat(3, minmax(64px, 1fr)); /* 12枚 → 3×4 */
   }
 }
-@media (max-width: 360px) {
-  #board {
-    grid-template-columns: repeat(3, minmax(64px, 1fr)); /* 12枚 → 3x4 */
-    gap: 8px;
-  }
-}
+
 
 /* =========================
    カード
