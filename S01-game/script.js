@@ -119,7 +119,7 @@ function startGame() {
 // ===== 判定 =====
 function checkClear() {
   const open = [...document.querySelectorAll(".card img")]
-    .every(img => !img.src.includes("back"));
+    .every(img => !img.src.includes("v01"));
 
   if (open) {
     const time = ((Date.now() - startTime) / 1000).toFixed(1);
