@@ -1,1 +1,88 @@
+body {
+  margin: 0;
+  font-family: sans-serif;
+  background: #111;
+  color: #fff;
+  text-align: center;
+}
+
+.screen {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.hidden {
+  display: none;
+  pointer-events: none;
+}
+
+/* START */
+.modeBtns {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.modeBtn {
+  background: orange;
+  padding: 15px 40px;
+  border-radius: 12px;
+  font-size: 24px;
+}
+
+#helpBtn {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  font-size: 24px;
+}
+
+/* GAME */
+#board {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  width: 90vw;
+  max-width: 400px;
+}
+
+.card {
+  aspect-ratio: 1 / 1;
+}
+
+.card img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+#countdown {
+  font-size: 80px;
+  margin-bottom: 20px;
+}
+
+/* RESULT */
+#resultScreen button {
+  margin: 10px;
+  padding: 12px 30px;
+  font-size: 18px;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
