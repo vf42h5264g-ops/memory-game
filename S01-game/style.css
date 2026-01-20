@@ -232,3 +232,26 @@ body {
     0 10px 22px rgba(0,0,0,0.55);
   transform: translateZ(0);
 }
+
+#shotBtn{
+  position: absolute;
+  right: 14px;
+  bottom: 14px;
+  width: 52px;
+  height: 52px;
+  display: grid;
+  place-items: center;
+  font-size: 26px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.10);
+  border: 1px solid rgba(255,255,255,0.12);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  cursor: pointer;
+  user-select: none;
+  box-shadow: 0 10px 24px rgba(0,0,0,0.35);
+}
+
+#shotBtn:active{
+  transform: scale(0.96);
+}
