@@ -3,11 +3,47 @@
 // =====================
 const BACK_SRC = "img/vback.jpg";
 
-const beep = new Audio("sound/beep.wav"); // カウントダウン用
-beep.preload = "auto";
+// ===== SE（Safari安定版）=====
+const SFX = {
+  beep: new Audio("sound/beep.wav"),
+  go: new Audio("sound/go.wav"),
+};
 
-const goSound = new Audio("sound/go.wav"); // v03(テキーラ)用
-goSound.preload = "auto";
+Object.values(SFX).forEach(a => {
+  a.preload = "auto";
+  a.volume = 1.0;
+});
+
+let audioUnlocked = false;
+
+function unlockAudio() {
+  if (audioUnlocked) return;
+  audioUnlocked = true;
+
+  // iOSの音解錠：超短く鳴らして止める（失敗してもOK）
+  Object.values(SFX).forEach(a => {
+    try { a.currentTime = 0; } catch {}
+    a.play().then(() => {
+      a.pause();
+      try { a.currentTime = 0; } catch {}
+    }).catch(() => {});
+  });
+}
+
+// 安定再生：クローンして鳴らす（連打・同時再生でも落ちにくい）
+function playSfx(key) {
+  const base = SFX[key];
+  if (!base) return;
+
+  // iOS対策：未解錠なら無理に鳴らさない（解錠はモード押下でやる）
+  if (!audioUnlocked) return;
+
+  const a = base.cloneNode();   // ★ここがミソ
+  a.volume = base.volume;
+
+  a.play().catch(() => {});
+}
+
 
 // =====================
 // 画面管理
@@ -98,6 +134,15 @@ document.getElementById("retryBtn")?.addEventListener("pointerdown", (e) => {
   startCountdown();
 });
 
+document.querySelectorAll(".modeBtn").forEach(btn => {
+  btn.addEventListener("pointerdown", (e) => {
+    e.preventDefault();
+    unlockAudio();
+    mode = btn.dataset.mode;
+    startCountdown();
+  });
+});
+
 
 // =====================
 // カウントダウン
@@ -123,8 +168,8 @@ function startCountdown() {
 
   const timer = setInterval(() => {
     // 毎秒 beep
-    beep.currentTime = 0;
-    beep.play().catch(() => {});
+    playSfx("beep");
+
 
     count--;
     if (count === 0) {
@@ -327,8 +372,8 @@ function renderStatus() {
 // =====================
 function showTequilaLose() {
   // 効果音
-  goSound.currentTime = 0;
-  goSound.play().catch(() => {});
+  playSfx("go");
+
 
   // 既に出てたら消す（連打対策）
   const old = document.getElementById("tequilaOverlay");
