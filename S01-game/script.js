@@ -117,6 +117,12 @@ function setStartNeon(on) {
 // ボタン類（イベント登録）
 // =====================
 
+document.getElementById("shotBtn")?.addEventListener("pointerdown", (e) => {
+  e.preventDefault();
+  unlockAudio();     // iPhoneのため最初に解錠
+  playSfx("go");     // go.wav を鳴らす
+});
+
 // モードボタン（※二重登録しない）
 document.querySelectorAll(".modeBtn").forEach(btn => {
   btn.addEventListener("pointerdown", (e) => {
