@@ -262,9 +262,12 @@ function startCountdown() {
       playSfx("beep");
     } else {
       // 0を表示（不要なら "0" 行を消してOK）
-      
-      // ★ 0でも鳴らす（不要ならこの行を消す）
-      
+  　　} else {
+  countdownEl.textContent = "0";
+  playSfx("beep");
+  clearInterval(timer);
+  ...
+}
 
       clearInterval(timer);
 
