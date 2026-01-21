@@ -239,9 +239,9 @@ function startCountdown() {
       playSfx("beep");
     } else {
       // 0を表示（不要なら "0" 行を消してOK）
-      countdownEl.textContent = "0";
+      
       // ★ 0でも鳴らす（不要ならこの行を消す）
-      playSfx("beep");
+      
 
       clearInterval(timer);
 
