@@ -74,6 +74,28 @@ function setStartNeon(on) {
   else screens.start.classList.remove("neon");
 }
 
+if (mode === "destroy") {
+  setStartNeon(true);
+
+  // まずclass付ける
+  destroyBtn?.classList.add("charging");
+
+  // ★ 次の描画フレームで“反映”させてからタイマー開始
+  requestAnimationFrame(() => {
+    // 3秒後に1秒フリッカー
+    setTimeout(() => screens.start.classList.add("flicker"), 3000);
+
+    // 4秒後に開始
+    setTimeout(() => {
+      screens.start.classList.remove("flicker");
+      destroyBtn?.classList.remove("charging");
+      startCountdown();
+    }, 4000);
+  });
+
+  return;
+}
+
 // =====================
 // 要素
 // =====================
