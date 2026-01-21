@@ -142,19 +142,41 @@ document.querySelectorAll(".modeBtn").forEach(btn => {
     e.preventDefault();
     unlockAudio();
 
-    mode = btn.dataset.mode;
+    const selected = btn.dataset.mode;
 
-    // NT-DだけネオンON
-    setStartNeon(mode === "destroy");
+    // まずは演出用クラスを全消し（連打対策）
+    const destroyBtn = document.querySelector('.modeBtn[data-mode="destroy"]');
+    destroyBtn?.classList.remove("charging");
+    screens.start.classList.remove("flicker");
 
-    // ★ NT-Dだけ 300ms 見せてから開始（チカチカが見える）
-    if (mode === "destroy") {
-      setTimeout(() => startCountdown(), 300);
-    } else {
+    mode = selected;
+
+    // NT-D以外は即開始
+    if (mode !== "destroy") {
+      setStartNeon(false);
       startCountdown();
+      return;
     }
+
+    // ===== NT-D演出 =====
+    // ① 3秒かけて文字が蛍光ピンクへ
+    setStartNeon(true);                 // 背景の“にじみ”はON（分かりやすく）
+    destroyBtn?.classList.add("charging");
+
+    // ② 3秒後、1秒だけネオンチカチカ
+    setTimeout(() => {
+      screens.start.classList.add("flicker");
+    }, 3000);
+
+    // ③ 4秒後、チカチカ停止→ゲーム開始
+    setTimeout(() => {
+      screens.start.classList.remove("flicker");
+      destroyBtn?.classList.remove("charging");
+      startCountdown();
+    }, 4000);
   });
 });
+
 
 // 左下：ショット（go音）
 shotBtn?.addEventListener("pointerdown", (e) => {
