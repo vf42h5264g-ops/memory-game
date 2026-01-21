@@ -18,6 +18,13 @@ Object.values(SFX).forEach(a => {
 });
 
 let audioUnlocked = false;
+let soundEnabled = true;
+
+// ローカル保存（任意）
+try {
+  const saved = localStorage.getItem("soundEnabled");
+  if (saved !== null) soundEnabled = saved === "1";
+} catch {}
 
 function unlockAudio() {
   if (audioUnlocked) return;
@@ -35,6 +42,7 @@ function unlockAudio() {
 
 // 安定再生：クローンして鳴らす（連打・同時再生でも落ちにくい）
 function playSfx(key) {
+  if (!soundEnabled) return;
   const base = SFX[key];
   if (!base) return;
   if (!audioUnlocked) return;
@@ -59,6 +67,13 @@ function setScreen(name) {
   screens[name].classList.remove("hidden");
 }
 
+// Start画面：NT-D選択でネオン強化
+function setStartNeon(on) {
+  if (!screens.start) return;
+  if (on) screens.start.classList.add("neon");
+  else screens.start.classList.remove("neon");
+}
+
 // =====================
 // 要素
 // =====================
@@ -67,6 +82,10 @@ const countdownEl = document.getElementById("countdown");
 const missArea = document.getElementById("missArea");
 const resultText = document.getElementById("resultText");
 const timeText = document.getElementById("timeText");
+
+const shotBtn = document.getElementById("shotBtn");
+const helpBtn = document.getElementById("helpBtn");
+const soundBtn = document.getElementById("soundBtn");
 
 // =====================
 // 状態
@@ -77,7 +96,7 @@ let lock = false;
 let miss = 0;
 let startTime = 0;
 
-// ですとろい用
+// NT-D用
 let destroySafeOpened = 0;
 
 // 二重起動防止（保険）
@@ -105,41 +124,47 @@ function applyBoardLayout() {
 }
 
 // =====================
-// Start画面：DESTROY選択でネオン強化
+// UI（サウンドボタン表示）
 // =====================
-function setStartNeon(on) {
-  if (!screens.start) return;
-  if (on) screens.start.classList.add("neon");
-  else screens.start.classList.remove("neon");
+function renderSoundIcon() {
+  if (!soundBtn) return;
+  soundBtn.textContent = soundEnabled ? "🔊" : "🔇";
 }
+renderSoundIcon();
 
 // =====================
 // ボタン類（イベント登録）
 // =====================
 
-document.getElementById("shotBtn")?.addEventListener("pointerdown", (e) => {
-  e.preventDefault();
-  unlockAudio();     // iPhoneのため最初に解錠
-  playSfx("go");     // go.wav を鳴らす
-});
-
-// モードボタン（※二重登録しない）
+// モードボタン
 document.querySelectorAll(".modeBtn").forEach(btn => {
   btn.addEventListener("pointerdown", (e) => {
     e.preventDefault();
-
     unlockAudio();
 
     mode = btn.dataset.mode;
 
-    // ★ DESTROY選択時だけネオンON（演出）
+    // NT-DだけネオンON
     setStartNeon(mode === "destroy");
 
-    startCountdown();
+    // ★ NT-Dだけ 300ms 見せてから開始（チカチカが見える）
+    if (mode === "destroy") {
+      setTimeout(() => startCountdown(), 300);
+    } else {
+      startCountdown();
+    }
   });
 });
 
-document.getElementById("helpBtn")?.addEventListener("pointerdown", (e) => {
+// 左下：ショット（go音）
+shotBtn?.addEventListener("pointerdown", (e) => {
+  e.preventDefault();
+  unlockAudio();
+  playSfx("go");
+});
+
+// 下中央：ヘルプ
+helpBtn?.addEventListener("pointerdown", (e) => {
   e.preventDefault();
   unlockAudio();
   setScreen("help");
@@ -151,16 +176,24 @@ document.getElementById("backFromHelp")?.addEventListener("pointerdown", (e) => 
   setScreen("start");
 });
 
+// 右下：サウンドON/OFF
+soundBtn?.addEventListener("pointerdown", (e) => {
+  e.preventDefault();
+  unlockAudio();
+  soundEnabled = !soundEnabled;
+  renderSoundIcon();
+  try { localStorage.setItem("soundEnabled", soundEnabled ? "1" : "0"); } catch {}
+});
+
+// 結果画面：戻る
 document.getElementById("backBtn")?.addEventListener("pointerdown", (e) => {
   e.preventDefault();
   unlockAudio();
-
-  // モード選択に戻るときはネオンOFF（お好みで）
   setStartNeon(false);
-
   setScreen("start");
 });
 
+// 結果画面：もう一回
 document.getElementById("retryBtn")?.addEventListener("pointerdown", (e) => {
   e.preventDefault();
   unlockAudio();
@@ -291,7 +324,7 @@ function startMemoryGame() {
 }
 
 // =====================
-// ですとろい：v03を引いたら負け
+// NT-D：v03を引いたら負け
 //  - v03以外(v01,v02,v04,v05,v06,v07)からランダム11枚(重複あり)
 //  - v03を1枚混ぜて合計12枚
 // =====================
@@ -483,10 +516,7 @@ function showTequilaLose(playSound = true) {
   back.addEventListener("pointerdown", (e) => {
     e.preventDefault();
     overlay.remove();
-
-    // モード選択へ戻すならネオン解除
     setStartNeon(false);
-
     setScreen("start");
   });
 
@@ -558,6 +588,7 @@ function launchConfetti(durationMs = 1200) {
 // =====================
 setStartNeon(false);
 setScreen("start");
+
 
 
 
