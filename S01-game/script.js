@@ -260,8 +260,6 @@ function startCountdown() {
       countdownEl.textContent = count;
       // ★ 2,1 と同時に鳴らす
       playSfx("beep");
-    } else {
-      // 0を表示（不要なら "0" 行を消してOK）
   　　} else {
   countdownEl.textContent = "0";
   playSfx("beep");
