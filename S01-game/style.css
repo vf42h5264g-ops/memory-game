@@ -253,6 +253,18 @@ button:active{
   transform: scale(0.98);
 }
 
+/* 初期状態（NT-D文字は白） */
+.modeBtn[data-mode="destroy"]{
+  color: #fff;
+  transition: color 3s linear, text-shadow 3s linear;
+}
+
+/* 3秒で蛍光ピンクへ（transitionで変化） */
+.modeBtn[data-mode="destroy"].charging{
+  color: #ff3bd4 !important;
+  text-shadow: 0 0 18px rgba(255, 60, 212, 0.55);
+}
+
 /* NT-D押下：3秒かけて文字が蛍光ピンクへ */
 @keyframes ntdCharge {
   0%   { color: #ffffff; text-shadow: none; }
@@ -286,4 +298,9 @@ button:active{
 /* “フリッカー中”のとき：背景も含めて1秒だけチカチカ */
 #startScreen.flicker{
   animation: neonFlickerFast 1s linear infinite;
+}
+
+.modeBtn[data-mode="destroy"].charging{
+  animation: ntdCharge 3s forwards;
+  color: #ff3bd4 !important; /* 最終色の保険 */
 }
