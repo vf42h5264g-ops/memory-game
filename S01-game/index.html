@@ -1,30 +1,35 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8">
-  <title>Quattro Vageena</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8" />
+  <title>Quattro Vageena : Last Call</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
 
 <!-- ===== START ===== -->
 <div id="startScreen" class="screen">
   <h1>Quattro Vageena</h1>
-<div class="subtitle">— Last Call —</div>
-
+  <div class="subtitle">— Last Call —</div>
 
   <div class="modeBtns">
     <div class="modeBtn" data-mode="easy">EASY</div>
     <div class="modeBtn" data-mode="normal">NORMAL</div>
     <div class="modeBtn" data-mode="hard">HARD</div>
     <div class="modeBtn" data-mode="destroy">NT-D</div>
-
   </div>
-  
-　<div id="shotBtn" aria-label="shot" title="SHOT">🥃</div>
 
-  <div id="helpBtn">❓</div>
+  <!-- 左下：ショット（タップで go.wav） -->
+  <div id="shotBtn" aria-label="shot" title="SHOT">🥃</div>
+
+  <!-- 下中央：ヘルプ -->
+  <div id="helpBtn" aria-label="help" title="HELP">❓</div>
+
+  <!-- 右下：サウンドON/OFF -->
+  <div id="soundBtn" aria-label="sound" title="SOUND">🔊</div>
+
+  <div class="footerText">One last game before closing.</div>
 </div>
 
 <!-- ===== HELP ===== -->
@@ -32,7 +37,7 @@
   <h2>あそびかた</h2>
   <p>カードをめくって同じ絵をそろえよう！</p>
   <p>HARDは5回ミスでBAD END</p>
-  <p>NT-Dのルールはマスターに聞いてね！</p>
+  <p>NT-Dは、危険なカードを引いたら即アウトの特別モード。</p>
   <button id="backFromHelp">戻る</button>
 </div>
 
@@ -54,6 +59,7 @@
 <script src="script.js"></script>
 </body>
 </html>
+
 
 
 
