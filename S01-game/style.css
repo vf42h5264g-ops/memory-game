@@ -253,3 +253,37 @@ button:active{
   transform: scale(0.98);
 }
 
+/* NT-D押下：3秒かけて文字が蛍光ピンクへ */
+@keyframes ntdCharge {
+  0%   { color: #ffffff; text-shadow: none; }
+  60%  { color: #ffd1f0; text-shadow: 0 0 10px rgba(255, 60, 180, 0.25); }
+  100% { color: #ff3bd4; text-shadow: 0 0 18px rgba(255, 60, 212, 0.55); }
+}
+
+/* 1秒チカチカ用 */
+@keyframes neonFlickerFast{
+  0%,100%{ filter: brightness(1); }
+  10%{ filter: brightness(1.18); }
+  12%{ filter: brightness(0.85); }
+  16%{ filter: brightness(1.28); }
+  20%{ filter: brightness(0.80); }
+  26%{ filter: brightness(1.22); }
+  40%{ filter: brightness(1.10); }
+  45%{ filter: brightness(0.92); }
+  55%{ filter: brightness(1.20); }
+}
+
+/* NT-Dボタン本体 */
+.modeBtn[data-mode="destroy"]{
+  position: relative;
+}
+
+/* “充電中”のとき：文字だけをアニメーション */
+.modeBtn[data-mode="destroy"].charging{
+  animation: ntdCharge 3s forwards;
+}
+
+/* “フリッカー中”のとき：背景も含めて1秒だけチカチカ */
+#startScreen.flicker{
+  animation: neonFlickerFast 1s linear infinite;
+}
