@@ -1,242 +1,100 @@
-/* =========================
-   共通：非表示
-========================= */
-.hidden {
-  display: none !important;
-}
-
-/* =========================
-   画面レイアウト（ざっくり）
-   ※あなたのHTMLに合わせて調整OK
-========================= */
-#startScreen,
-#helpScreen,
-#gameScreen,
-#resultScreen {
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 14px;
-  padding: 16px;
-  box-sizing: border-box;
-}
-
-button {
-  -webkit-tap-highlight-color: transparent;
-  touch-action: manipulation;
-}
-
-/* =========================
-   カウントダウン表示
-========================= */
-#countdown {
-  position: fixed;
-  inset: 0;
-  display: grid;
-  place-items: center;
-  font-size: clamp(64px, 18vw, 140px);
-  font-weight: 900;
-  color: #fff;
-  text-shadow: 0 6px 24px rgba(0,0,0,0.45);
-  background: rgba(0,0,0,0.35);
-  z-index: 5000;
-}
-
-/* =========================
-   盤面 共通
-========================= */
-#board {
-  width: min(980px, 94vw);
-  margin: 0 auto;
-  display: grid;
-  gap: 10px;
-  align-content: center;
-  justify-content: center;
-}
-
-/* =========================
-   モード別レイアウト
-========================= */
-
-/* easy：6枚 → 3×2 */
-#board.layout-easy {
-  grid-template-columns: repeat(3, minmax(80px, 1fr));
-}
-
-/* normal / hard / destroy：12枚 → 4×3 */
-#board.layout-12 {
-  grid-template-columns: repeat(4, minmax(72px, 1fr));
-}
-
-/* =========================
-   スマホ微調整
-========================= */
-@media (max-width: 480px) {
-  #board.layout-easy {
-    grid-template-columns: repeat(3, minmax(64px, 1fr));
-  }
-  #board.layout-12 {
-    grid-template-columns: repeat(3, minmax(64px, 1fr)); /* 12枚 → 3×4 */
-  }
-}
-
-
-/* =========================
-   カード
-========================= */
-.card {
-  width: 100%;
-  aspect-ratio: 3 / 4; /* トランプっぽい比率 */
-  border-radius: 14px;
-  overflow: hidden;
-  position: relative;
-  cursor: pointer;
-  user-select: none;
-
-  /* ちょい立体感 */
-  box-shadow: 0 8px 18px rgba(0,0,0,0.18);
-  transform: translateZ(0);
-  transition: transform 0.08s ease;
-}
-
-.card:active {
-  transform: scale(0.98);
-}
-
-.card img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover; /* 画像をカードにフィット */
-  display: block;
-}
-
-/* =========================
-   MISS表示エリア（HARD用・destroy進捗）
-========================= */
-#missArea {
-  width: min(980px, 94vw);
-  font-size: 18px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-align: center;
-  margin-bottom: 6px;
-}
-
-/* =========================
-   結果画面（お好みで）
-========================= */
-#resultText {
-  font-size: clamp(28px, 7vw, 56px);
-  font-weight: 900;
-  letter-spacing: 0.04em;
-}
-
-#timeText {
-  font-size: 18px;
-  opacity: 0.9;
-}
-/* ===== 全体背景 ===== */
+/* =====================
+   Base
+===================== */
+* { box-sizing: border-box; }
 body {
   margin: 0;
-  background: linear-gradient(180deg, #1b1b1b, #000);
-  color: #fff;
+  color: #f5f1e8;
   font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  background: #000;
 }
 
-/* ===== 画面共通 ===== */
+/* =====================
+   Screen
+===================== */
 .screen {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 16px;
+  gap: 14px;
+  padding: 24px 16px;
 }
 
-/* ===== モードボタン ===== */
+.hidden { display: none !important; }
+
+/* =====================
+   Start Screen (BAR)
+===================== */
+#startScreen{
+  position: relative;
+  overflow: hidden;
+  background: radial-gradient(circle at top, #3a0f14 0%, #1b070a 40%, #000 100%);
+}
+
+#startScreen h1 {
+  margin: 0;
+  font-size: 38px;
+  letter-spacing: 0.06em;
+  font-weight: 800;
+  text-align: center;
+}
+
+.subtitle {
+  margin-top: -6px;
+  font-size: 14px;
+  letter-spacing: 0.28em;
+  opacity: 0.9;
+}
+
+/* モードボタン */
 .modeBtns {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 14px;
+  width: min(360px, 86vw);
+  margin-top: 10px;
 }
 
 .modeBtn {
-  padding: 14px 22px;
+  user-select: none;
+  cursor: pointer;
+  padding: 16px 18px;
+  border-radius: 16px;
   background: #e53935;
   color: #fff;
-  font-weight: 800;
-  border-radius: 12px;
-  cursor: pointer;
   text-align: center;
-  box-shadow: 0 6px 14px rgba(0,0,0,0.4);
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  box-shadow: 0 10px 22px rgba(0,0,0,0.35);
 }
 
 .modeBtn:active {
-  transform: scale(0.97);
+  transform: scale(0.98);
+  filter: brightness(0.95);
 }
 
-/* ===== ヘルプボタン ===== */
-#helpBtn {
-  margin-top: 12px;
-  font-size: 24px;
-  cursor: p
-
-/* 通常（落ち着いたバー） */
-#startScreen {
-  background: radial-gradient(circle at top, #3a0f14 0%, #1b070a 40%, #000 100%);
-  color: #f5f1e8;
-  position: relative;
-  overflow: hidden;
-}
-
-/* DESTROY選択時だけ “赤ネオン強化” */
-#startScreen.neon {
-  background:
-    radial-gradient(circle at 20% 20%, rgba(255, 60, 60, 0.18) 0%, rgba(0,0,0,0) 45%),
-    radial-gradient(circle at 80% 30%, rgba(255, 0, 120, 0.10) 0%, rgba(0,0,0,0) 50%),
-    radial-gradient(circle at top, #4a1016 0%, #1b070a 40%, #000 100%);
-}
-
-/* ネオンの薄い“霞”を上に乗せる */
-#startScreen.neon::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background:
-    linear-gradient(180deg, rgba(255,0,80,0.08), rgba(0,0,0,0) 55%),
-    radial-gradient(circle at 50% 15%, rgba(255,60,60,0.22), rgba(0,0,0,0) 55%);
-  mix-blend-mode: screen;
-}
-
-/* タイトルもほんのり発光 */
-#startScreen.neon h1,
-#startScreen.neon .subtitle {
-  text-shadow:
-    0 0 10px rgba(255, 40, 40, 0.25),
-    0 0 22px rgba(255, 0, 120, 0.18);
-}
-
-/* DESTROYボタンだけ、普段から少し怪しくしておく（任意） */
-.modeBtn[data-mode="destroy"] {
+/* NT-Dボタンは少しだけ怪しく */
+.modeBtn[data-mode="destroy"]{
   border: 1px solid rgba(255,255,255,0.10);
 }
 
-/* ネオン状態のとき、DESTROYボタンが“危険に光る” */
-#startScreen.neon .modeBtn[data-mode="destroy"] {
-  box-shadow:
-    0 0 14px rgba(255, 0, 0, 0.35),
-    0 0 30px rgba(255, 0, 120, 0.22),
-    0 10px 22px rgba(0,0,0,0.55);
-  transform: translateZ(0);
+/* 下のテキスト */
+.footerText{
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: 86px;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  opacity: 0.7;
 }
 
-#shotBtn{
-  position: absolute;
-  right: 14px;
-  bottom: 14px;
+/* =====================
+   Start Screen Icons
+===================== */
+#shotBtn, #helpBtn, #soundBtn{
   width: 52px;
   height: 52px;
   display: grid;
@@ -245,13 +103,153 @@ body {
   border-radius: 999px;
   background: rgba(255,255,255,0.10);
   border: 1px solid rgba(255,255,255,0.12);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
   cursor: pointer;
   user-select: none;
   box-shadow: 0 10px 24px rgba(0,0,0,0.35);
+  touch-action: manipulation;
 }
 
-#shotBtn:active{
+#shotBtn{ position: absolute; left: 14px; bottom: 14px; }
+#soundBtn{ position: absolute; right: 14px; bottom: 14px; }
+
+/* 下中央：？ */
+#helpBtn{
+  position: absolute;
+  left: 50%;
+  bottom: 18px;
+  transform: translateX(-50%);
+}
+
+/* 押し込み */
+#shotBtn:active, #soundBtn:active{
   transform: scale(0.96);
 }
+#helpBtn:active{
+  transform: translateX(-50%) scale(0.96);
+}
+
+/* =====================
+   Neon / Flicker (NT-D)
+===================== */
+#startScreen.neon{
+  background:
+    radial-gradient(circle at 20% 20%, rgba(255, 60, 60, 0.18) 0%, rgba(0,0,0,0) 45%),
+    radial-gradient(circle at 80% 30%, rgba(255, 0, 120, 0.10) 0%, rgba(0,0,0,0) 50%),
+    radial-gradient(circle at top, #4a1016 0%, #1b070a 40%, #000 100%);
+}
+
+/* 霞レイヤー */
+#startScreen.neon::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  background:
+    linear-gradient(180deg, rgba(255,0,80,0.10), rgba(0,0,0,0) 60%),
+    radial-gradient(circle at 50% 15%, rgba(255,60,60,0.22), rgba(0,0,0,0) 55%);
+  mix-blend-mode: screen;
+}
+
+/* タイトル発光 */
+#startScreen.neon h1,
+#startScreen.neon .subtitle{
+  text-shadow:
+    0 0 10px rgba(255, 40, 40, 0.25),
+    0 0 22px rgba(255, 0, 120, 0.18);
+}
+
+/* フリッカー */
+@keyframes neonFlicker{
+  0%,100%{ filter: brightness(1); }
+  10%{ filter: brightness(1.15); }
+  12%{ filter: brightness(0.9); }
+  15%{ filter: brightness(1.25); }
+  18%{ filter: brightness(0.85); }
+  22%{ filter: brightness(1.2); }
+  40%{ filter: brightness(1.05); }
+  42%{ filter: brightness(0.92); }
+  45%{ filter: brightness(1.18); }
+}
+#startScreen.neon{
+  animation: neonFlicker 1.25s infinite;
+}
+
+/* NT-Dボタンも強化 */
+#startScreen.neon .modeBtn[data-mode="destroy"]{
+  box-shadow:
+    0 0 14px rgba(255, 0, 0, 0.35),
+    0 0 30px rgba(255, 0, 120, 0.22),
+    0 10px 22px rgba(0,0,0,0.55);
+}
+
+/* =====================
+   Game Screen
+===================== */
+#gameScreen{
+  background: radial-gradient(circle at top, #120507 0%, #000 65%);
+}
+
+#countdown{
+  font-size: 56px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  margin-bottom: 8px;
+}
+
+#missArea{
+  min-height: 26px;
+  margin-bottom: 10px;
+  opacity: 0.9;
+}
+
+/* Board layouts */
+#board{
+  display: grid;
+  gap: 10px;
+  width: min(440px, 92vw);
+  justify-content: center;
+}
+
+/* easy(6枚) 3x2 */
+#board.layout-easy{
+  grid-template-columns: repeat(3, 1fr);
+}
+
+/* normal/hard/NT-D(12枚) 4x3 */
+#board.layout-12{
+  grid-template-columns: repeat(4, 1fr);
+}
+
+.card{
+  background: rgba(255,255,255,0.06);
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,0.10);
+}
+
+.card img{
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  display: block;
+  object-fit: cover;
+}
+
+/* =====================
+   Result / Help
+===================== */
+#helpScreen, #resultScreen{
+  background: radial-gradient(circle at top, #120507 0%, #000 65%);
+}
+
+button{
+  padding: 12px 18px;
+  font-size: 16px;
+  border-radius: 12px;
+  border: none;
+  cursor: pointer;
+}
+
+button:active{
+  transform: scale(0.98);
+}
+
