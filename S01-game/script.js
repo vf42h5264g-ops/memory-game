@@ -33,18 +33,22 @@ document.addEventListener("DOMContentLoaded", () => {
   } catch {}
 
   function unlockAudio() {
-    if (audioUnlocked) return;
-    audioUnlocked = true;
+  if (audioUnlocked) return;
+  audioUnlocked = true;
 
-    // iOSの音解錠：超短く鳴らして止める
-    Object.values(SFX).forEach(a => {
-      try { a.currentTime = 0; } catch {}
-      a.play().then(() => {
-        a.pause();
-        try { a.currentTime = 0; } catch {}
-      }).catch(() => {});
-    });
-  }
+  // 解錠は beep だけで十分（go を鳴らさない）
+  const a = SFX.beep;
+  try { a.currentTime = 0; } catch {}
+  a.volume = 0.0;              // ★無音で解錠
+  a.play().then(() => {
+    a.pause();
+    try { a.currentTime = 0; } catch {}
+    a.volume = 1.0;            // ★元に戻す
+  }).catch(() => {
+    a.volume = 1.0;
+  });
+}
+
 
   // 安定再生：クローンして鳴らす
   function playSfx(key) {
@@ -261,49 +265,60 @@ document.addEventListener("DOMContentLoaded", () => {
   // 3の表示と同時に鳴る、2,1,0でも鳴る
   // =====================
   function startCountdown() {
-    if (countdownRunning) return;
-    countdownRunning = true;
+  if (countdownRunning) return;
+  countdownRunning = true;
 
-    setScreen("game");
-    board.innerHTML = "";
-    missArea.innerHTML = "";
+  setScreen("game");
+  board.innerHTML = "";
+  missArea.innerHTML = "";
+  applyBoardLayout();
 
-    applyBoardLayout();
+  // 状態リセット
+  miss = 0;
+  first = null;
+  lock = false;
+  destroySafeOpened = 0;
+  renderStatus();
 
-    // 状態リセット
-    miss = 0;
-    first = null;
-    lock = false;
-    destroySafeOpened = 0;
+  countdownEl.classList.remove("hidden");
 
-    renderStatus();
+  const start = Date.now();
+  const totalSec = 3; // 3,2,1,0 を出す
+  let lastShown = null;
 
-    let count = 3;
-    countdownEl.classList.remove("hidden");
-    countdownEl.textContent = String(count);
+  function tick() {
+    const elapsed = (Date.now() - start) / 1000;
+    const remain = Math.max(0, totalSec - Math.floor(elapsed)); // 3→2→1→0
+    const show = remain;
 
-    // 3と同時に鳴らす
-    playSfx("beep");
+    // 表示が変わった瞬間だけ鳴らす
+    if (show !== lastShown) {
+      countdownEl.textContent = String(show);
+      playSfx("beep");
+      lastShown = show;
+    }
 
-    const timer = setInterval(() => {
-      count--;
+    if (show === 0) {
+      // 0 を一定時間見せてから開始
+      setTimeout(() => {
+        countdownEl.classList.add("hidden");
+        countdownRunning = false;
+        startGame();
+      }, 180);
+      return;
+    }
 
-      if (count >= 0) {
-        countdownEl.textContent = String(count);
-        playSfx("beep");
-      }
-
-      if (count <= 0) {
-        clearInterval(timer);
-
-        setTimeout(() => {
-          countdownEl.classList.add("hidden");
-          countdownRunning = false;
-          startGame();
-        }, 150);
-      }
-    }, 1000);
+    requestAnimationFrame(tick);
   }
+
+  // 最初の 3 を即表示&即鳴らす
+  countdownEl.textContent = "3";
+  playSfx("beep");
+  lastShown = 3;
+
+  requestAnimationFrame(tick);
+}
+
 
   // =====================
   // ゲーム開始（分岐）
