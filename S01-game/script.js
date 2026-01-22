@@ -1,5 +1,5 @@
 // =====================
-// Quattro Vageena : Last Call (Complete JS)
+// Quattro Vageena : Last Call (Complete JS / iPhone安定版)
 // =====================
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -9,19 +9,56 @@ document.addEventListener("DOMContentLoaded", () => {
   };
 
   // =====================
-  // 定数・SE（Safari安定版）
+  // 定数
   // =====================
   const BACK_SRC = "img/vback.jpg";
 
-  const SFX = {
-    beep: new Audio("sound/beep.wav"),
-    go: new Audio("sound/go.wav"),
-  };
+  // =====================
+  // SE（iPhone安定：Audio Pool方式）
+  // =====================
+  function makePool(src, size = 5, volume = 1.0) {
+    const pool = Array.from({ length: size }, () => {
+      const a = new Audio(src);
+      a.preload = "auto";
+      a.volume = volume;
+      return a;
+    });
+    let idx = 0;
 
-  Object.values(SFX).forEach(a => {
-    a.preload = "auto";
-    a.volume = 1.0;
-  });
+    return {
+      primeSilently() {
+        // 無音で一瞬再生→停止（解錠＆デコード促進）
+        pool.forEach(a => {
+          const v = a.volume;
+          a.volume = 0.0;
+          try { a.currentTime = 0; } catch {}
+          a.play().then(() => {
+            a.pause();
+            try { a.currentTime = 0; } catch {}
+            a.volume = v;
+          }).catch(() => {
+            a.volume = v;
+          });
+        });
+      },
+      play() {
+        const a = pool[idx];
+        idx = (idx + 1) % pool.length;
+
+        try { a.currentTime = 0; } catch {}
+        a.play().catch(() => {});
+      },
+      setVolume(v) {
+        pool.forEach(a => (a.volume = v));
+      }
+    };
+  }
+
+  const SFX = {
+    beep: makePool("sound/beep.wav", 6, 1.0),
+    beep2: makePool("sound/beep2.wav", 4, 1.0),
+    go: makePool("sound/go.wav", 4, 1.0),
+  };
 
   let audioUnlocked = false;
   let soundEnabled = true;
@@ -33,33 +70,21 @@ document.addEventListener("DOMContentLoaded", () => {
   } catch {}
 
   function unlockAudio() {
-  if (audioUnlocked) return;
-  audioUnlocked = true;
+    if (audioUnlocked) return;
+    audioUnlocked = true;
 
-  // 解錠は beep だけで十分（go を鳴らさない）
-  const a = SFX.beep;
-  try { a.currentTime = 0; } catch {}
-  a.volume = 0.0;              // ★無音で解錠
-  a.play().then(() => {
-    a.pause();
-    try { a.currentTime = 0; } catch {}
-    a.volume = 1.0;            // ★元に戻す
-  }).catch(() => {
-    a.volume = 1.0;
-  });
-}
+    // 解錠＆デコード促進（無音）
+    SFX.beep.primeSilently();
+    SFX.beep2.primeSilently();
+    SFX.go.primeSilently();
+  }
 
-
-  // 安定再生：クローンして鳴らす
   function playSfx(key) {
     if (!soundEnabled) return;
-    const base = SFX[key];
-    if (!base) return;
     if (!audioUnlocked) return;
-
-    const a = base.cloneNode();
-    a.volume = base.volume;
-    a.play().catch(() => {});
+    const s = SFX[key];
+    if (!s) return;
+    s.play();
   }
 
   // =====================
@@ -77,7 +102,6 @@ document.addEventListener("DOMContentLoaded", () => {
     screens[name]?.classList.remove("hidden");
   }
 
-  // Start画面：ネオンON/OFF
   function setStartNeon(on) {
     if (!screens.start) return;
     screens.start.classList.toggle("neon", !!on);
@@ -99,7 +123,6 @@ document.addEventListener("DOMContentLoaded", () => {
   const backBtn = document.getElementById("backBtn");
   const retryBtn = document.getElementById("retryBtn");
 
-  // 必須要素チェック（ここが無いと当然動かない）
   if (!screens.start || !screens.game || !board || !countdownEl || !missArea || !resultText || !timeText) {
     alert("HTMLのIDが合ってない可能性があります。\nboard / countdown / missArea / resultText / timeText を確認してね。");
     return;
@@ -114,52 +137,44 @@ document.addEventListener("DOMContentLoaded", () => {
   let miss = 0;
   let startTime = 0;
 
-  // NT-D用
   let destroySafeOpened = 0;
 
   // 二重起動防止
   let countdownRunning = false;
+  let countdownTimerIds = [];
+
+  function clearCountdownTimers() {
+    countdownTimerIds.forEach(id => clearTimeout(id));
+    countdownTimerIds = [];
+  }
 
   // =====================
-  // モード設定（通常神経衰弱用）
-  // easy: 3種類×2枚=6枚
-  // normal/hard: 6種類×2枚=12枚
+  // モード設定
   // =====================
   const modeSetting = {
     easy: 3,
     normal: 6,
     hard: 6,
-    destroy: 0 // NT-Dは別ルール
+    destroy: 0
   };
 
-  // =====================
-  // 盤面レイアウト切替
-  // =====================
   function applyBoardLayout() {
     board.classList.remove("layout-easy", "layout-12");
     if (mode === "easy") board.classList.add("layout-easy");
     else board.classList.add("layout-12");
   }
 
-  // =====================
-  // UI（サウンドボタン表示）
-  // =====================
   function renderSoundIcon() {
     if (!soundBtn) return;
     soundBtn.textContent = soundEnabled ? "🔊" : "🔇";
   }
   renderSoundIcon();
 
-  // =====================
-  // 表示：HARDは✖、destroyは進捗表示
-  // =====================
   function renderStatus() {
     if (mode === "hard") {
       const max = 5;
       missArea.textContent =
-        "MISS : " +
-        "✖".repeat(miss) +
-        "・".repeat(Math.max(0, max - miss));
+        "MISS : " + "✖".repeat(miss) + "・".repeat(Math.max(0, max - miss));
       return;
     }
     if (mode === "destroy") {
@@ -171,10 +186,8 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // =====================
-  // ボタン類（イベント登録）
+  // ボタン類
   // =====================
-
-  // モードボタン（EASY/NORMAL/HARD/NT-D）
   document.querySelectorAll(".modeBtn").forEach(btn => {
     btn.addEventListener("pointerdown", (e) => {
       e.preventDefault();
@@ -183,12 +196,15 @@ document.addEventListener("DOMContentLoaded", () => {
       const selected = btn.dataset.mode;
       mode = selected || "easy";
 
-      // 連打対策：演出クラスを消す
+      // 連打対策：演出リセット
       const destroyBtn = document.querySelector('.modeBtn[data-mode="destroy"]');
       destroyBtn?.classList.remove("charging");
       screens.start?.classList.remove("flicker");
 
-      // NT-D以外は即スタート
+      // 進行中カウントダウンがあれば止める
+      clearCountdownTimers();
+      countdownRunning = false;
+
       if (mode !== "destroy") {
         setStartNeon(false);
         startCountdown();
@@ -197,33 +213,28 @@ document.addEventListener("DOMContentLoaded", () => {
 
       // ===== NT-D演出 =====
       setStartNeon(true);
-
-      // 3秒でピンク化（CSSの .charging を使う）
-      // ※ transitionが確実に発火するように次フレームで付ける
       requestAnimationFrame(() => destroyBtn?.classList.add("charging"));
 
-      // 3秒後に1秒チカチカ
-      setTimeout(() => {
+      // 3秒後チカチカ
+      countdownTimerIds.push(setTimeout(() => {
         screens.start?.classList.add("flicker");
-      }, 3000);
+      }, 3000));
 
-      // 4秒後に開始
-      setTimeout(() => {
+      // 4秒後開始
+      countdownTimerIds.push(setTimeout(() => {
         screens.start?.classList.remove("flicker");
         destroyBtn?.classList.remove("charging");
         startCountdown();
-      }, 4000);
+      }, 4000));
     });
   });
 
-  // 左下：ショット（go音）
   shotBtn?.addEventListener("pointerdown", (e) => {
     e.preventDefault();
     unlockAudio();
     playSfx("go");
   });
 
-  // 下中央：ヘルプ
   helpBtn?.addEventListener("pointerdown", (e) => {
     e.preventDefault();
     unlockAudio();
@@ -236,7 +247,6 @@ document.addEventListener("DOMContentLoaded", () => {
     setScreen("start");
   });
 
-  // 右下：サウンドON/OFF
   soundBtn?.addEventListener("pointerdown", (e) => {
     e.preventDefault();
     unlockAudio();
@@ -245,7 +255,6 @@ document.addEventListener("DOMContentLoaded", () => {
     try { localStorage.setItem("soundEnabled", soundEnabled ? "1" : "0"); } catch {}
   });
 
-  // 結果画面：戻る
   backBtn?.addEventListener("pointerdown", (e) => {
     e.preventDefault();
     unlockAudio();
@@ -253,7 +262,6 @@ document.addEventListener("DOMContentLoaded", () => {
     setScreen("start");
   });
 
-  // 結果画面：もう一回
   retryBtn?.addEventListener("pointerdown", (e) => {
     e.preventDefault();
     unlockAudio();
@@ -261,67 +269,56 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   // =====================
-  // カウントダウン（テンポ修正版）
-  // 3の表示と同時に鳴る、2,1,0でも鳴る
+  // カウントダウン（最安定：予約時刻方式）
+  // - 3,2,1 は beep
+  // - 0 は beep2
   // =====================
   function startCountdown() {
-  if (countdownRunning) return;
-  countdownRunning = true;
+    if (countdownRunning) return;
+    countdownRunning = true;
 
-  setScreen("game");
-  board.innerHTML = "";
-  missArea.innerHTML = "";
-  applyBoardLayout();
+    clearCountdownTimers();
 
-  // 状態リセット
-  miss = 0;
-  first = null;
-  lock = false;
-  destroySafeOpened = 0;
-  renderStatus();
+    setScreen("game");
+    board.innerHTML = "";
+    missArea.innerHTML = "";
+    applyBoardLayout();
 
-  countdownEl.classList.remove("hidden");
+    // 状態リセット
+    miss = 0;
+    first = null;
+    lock = false;
+    destroySafeOpened = 0;
+    renderStatus();
 
-  const start = Date.now();
-  const totalSec = 3; // 3,2,1,0 を出す
-  let lastShown = null;
+    countdownEl.classList.remove("hidden");
 
-  function tick() {
-    const elapsed = (Date.now() - start) / 1000;
-    const remain = Math.max(0, totalSec - Math.floor(elapsed)); // 3→2→1→0
-    const show = remain;
+    const steps = [3, 2, 1, 0];
+    steps.forEach((num, i) => {
+      const id = setTimeout(() => {
+        // 途中でキャンセルされたら何もしない
+        if (!countdownRunning) return;
 
-    // 表示が変わった瞬間だけ鳴らす
-    if (show !== lastShown) {
-      countdownEl.textContent = String(show);
-      playSfx("beep");
-      lastShown = show;
-    }
+        countdownEl.textContent = String(num);
 
-    if (show === 0) {
-      // 0 を一定時間見せてから開始
-      setTimeout(() => {
-        countdownEl.classList.add("hidden");
-        countdownRunning = false;
-        startGame();
-      }, 180);
-      return;
-    }
+        if (num === 0) playSfx("beep2");
+        else playSfx("beep");
+      }, i * 1000);
+      countdownTimerIds.push(id);
+    });
 
-    requestAnimationFrame(tick);
+    // 0表示の後、少し待って開始
+    countdownTimerIds.push(setTimeout(() => {
+      if (!countdownRunning) return;
+
+      countdownEl.classList.add("hidden");
+      countdownRunning = false;
+      startGame();
+    }, 3500));
   }
 
-  // 最初の 3 を即表示&即鳴らす
-  countdownEl.textContent = "3";
-  playSfx("beep");
-  lastShown = 3;
-
-  requestAnimationFrame(tick);
-}
-
-
   // =====================
-  // ゲーム開始（分岐）
+  // ゲーム開始
   // =====================
   function startGame() {
     if (mode === "destroy") startDestroyGame();
@@ -332,10 +329,9 @@ document.addEventListener("DOMContentLoaded", () => {
   // 通常：神経衰弱
   // =====================
   function startMemoryGame() {
-    const total = modeSetting[mode]; // 種類数
+    const total = modeSetting[mode];
     const names = [];
 
-    // v02～（例: easy=3 => v02,v03,v04）
     for (let i = 2; i < 2 + total; i++) {
       names.push("v" + i.toString().padStart(2, "0"));
     }
@@ -391,8 +387,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // =====================
   // NT-D：v03を引いたら負け
-  //  - v03以外(v01,v02,v04,v05,v06,v07)からランダム11枚(重複あり)
-  //  - v03を1枚混ぜて合計12枚
   // =====================
   function startDestroyGame() {
     const pool = ["v01", "v02", "v04", "v05", "v06", "v07"];
@@ -426,18 +420,16 @@ document.addEventListener("DOMContentLoaded", () => {
         img.src = `img/${name}.jpg`;
         img.dataset.open = "1";
 
-        // v03 = 即負け（音は即）
         if (name === "v03") {
           lock = true;
-          playSfx("go");
-          setTimeout(() => showTequilaLose(false), 80);
+          playSfx("go"); // ★めくった瞬間
+          setTimeout(() => showTequilaLose(false), 60);
           return;
         }
 
         destroySafeOpened++;
         renderStatus();
 
-        // 11枚安全をめくり切ったら勝ち
         if (destroySafeOpened >= 11) {
           lock = true;
           setTimeout(() => {
@@ -453,7 +445,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // =====================
-  // 判定：神経衰弱クリア
+  // 判定
   // =====================
   function checkClearMemory() {
     const open = [...document.querySelectorAll(".card img")]
@@ -468,9 +460,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  // =====================
-  // 判定：HARD バッドエンド
-  // =====================
   function checkBadEnd() {
     if (mode === "hard" && miss >= 5) {
       resultText.textContent = "BAD END…";
@@ -480,7 +469,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // =====================
-  // v03を引いた時の「GO!テキーラ!!」演出 + ボタン
+  // v03演出
   // =====================
   function showTequilaLose(playSound = true) {
     if (playSound) playSfx("go");
@@ -621,44 +610,3 @@ document.addEventListener("DOMContentLoaded", () => {
   setStartNeon(false);
   setScreen("start");
 });
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
