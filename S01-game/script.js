@@ -319,25 +319,25 @@ document.addEventListener("DOMContentLoaded", () => {
 
   shotBtn?.addEventListener("pointerdown", async (e) => {
     e.preventDefault();
-    await ensureAudioUnlocked();
+    ensureAudioUnlocked();
     playSfx("go");
   }, { passive: false });
 
   helpBtn?.addEventListener("pointerdown", async (e) => {
     e.preventDefault();
-    await ensureAudioUnlocked();
+    ensureAudioUnlocked();
     setScreen("help");
   }, { passive: false });
 
   backFromHelpBtn?.addEventListener("pointerdown", async (e) => {
     e.preventDefault();
-    await ensureAudioUnlocked();
+    ensureAudioUnlocked();
     setScreen("start");
   }, { passive: false });
 
   soundBtn?.addEventListener("pointerdown", async (e) => {
     e.preventDefault();
-    await ensureAudioUnlocked();
+    ensureAudioUnlocked();
     soundEnabled = !soundEnabled;
     renderSoundIcon();
     try { localStorage.setItem("soundEnabled", soundEnabled ? "1" : "0"); } catch {}
@@ -345,14 +345,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
   backBtn?.addEventListener("pointerdown", async (e) => {
     e.preventDefault();
-    await ensureAudioUnlocked();
+    ensureAudioUnlocked();
     setStartNeon(false);
     setScreen("start");
   }, { passive: false });
 
   retryBtn?.addEventListener("pointerdown", async (e) => {
     e.preventDefault();
-    await ensureAudioUnlocked();
+    ensureAudioUnlocked();
     cancelCountdown();
     startCountdown();
   }, { passive: false });
