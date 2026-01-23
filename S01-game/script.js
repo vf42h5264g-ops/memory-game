@@ -1,6 +1,7 @@
 // =====================
 // Quattro Vageena : Last Call (Complete JS / iPhone安定版)
 // =====================
+
 document.addEventListener("DOMContentLoaded", () => {
   // iPhoneでも原因が分かるように（不要なら消してOK）
   window.onerror = function (msg, url, line, col) {
@@ -13,65 +14,91 @@ document.addEventListener("DOMContentLoaded", () => {
   const BACK_SRC = "img/vback.jpg";
 
   // =====================
-  // SE（iPhone安定：Audio Pool方式）
+  // v03負け台詞（ランダム）
+  // =====================
+  const TEQUILA_LINES = [
+    "いきまーーっす！",
+    "飲めよ国民！",
+    "坊やだからさ・・・",
+    "ザクとは違うのだよ",
+    "見せてもらおうか"
+  ];
+  function pickTequilaLine() {
+    return TEQUILA_LINES[Math.floor(Math.random() * TEQUILA_LINES.length)];
+  }
+
+  // =====================
+  // SE（iPhone安定：Audio Pool方式 / prime完了を待てる版）
   // =====================
   function makePool(src, size = 5, volume = 1.0) {
     const pool = Array.from({ length: size }, () => {
       const a = new Audio(src);
       a.preload = "auto";
       a.volume = volume;
+      // 可能なら先読み促進
+      try { a.load(); } catch {}
       return a;
     });
     let idx = 0;
 
-    return {
-      // ★重要：primeは「全員」ではなく「1人だけ」を既定に（負荷を下げる）
-      primeSilently(oneOnly = true) {
-        const targets = oneOnly ? [pool[0]] : pool;
-
-        targets.forEach(a => {
-          const v = a.volume;
-          const m = a.muted;
-
-          // ★ volume=0 だけだと端末によっては漏れることがあるので muted 併用
-          a.muted = true;
-          a.volume = 0.0;
-
-          try { a.currentTime = 0; } catch {}
-          a.play().then(() => {
-            a.pause();
+    // 無音で一瞬再生→停止（解錠＆デコード促進）を「完了待ち」できるようにする
+    function primeSilentlyAsync() {
+      return Promise.all(
+        pool.map(a => {
+          return new Promise(resolve => {
+            const v = a.volume;
+            a.volume = 0.0;
             try { a.currentTime = 0; } catch {}
-            a.muted = m;
-            a.volume = v;
-          }).catch(() => {
-            a.muted = m;
-            a.volume = v;
+            const p = a.play();
+            if (p && typeof p.then === "function") {
+              p.then(() => {
+                a.pause();
+                try { a.currentTime = 0; } catch {}
+                a.volume = v;
+                resolve();
+              }).catch(() => {
+                a.volume = v;
+                resolve();
+              });
+            } else {
+              // play()がPromise返さないブラウザ対策
+              try {
+                a.pause();
+                try { a.currentTime = 0; } catch {}
+              } catch {}
+              a.volume = v;
+              resolve();
+            }
           });
-        });
-      },
+        })
+      );
+    }
 
-      play() {
-        const a = pool[idx];
-        idx = (idx + 1) % pool.length;
-        try { a.currentTime = 0; } catch {}
-        a.play().catch(() => {});
-      },
+    function playNow() {
+      const a = pool[idx];
+      idx = (idx + 1) % pool.length;
 
-      setVolume(v) {
-        pool.forEach(a => (a.volume = v));
-      }
-    };
+      try { a.currentTime = 0; } catch {}
+      const p = a.play();
+      if (p && typeof p.catch === "function") p.catch(() => {});
+    }
+
+    function setVolume(v) {
+      pool.forEach(a => (a.volume = v));
+    }
+
+    return { primeSilentlyAsync, playNow, setVolume };
   }
 
   const SFX = {
-    beep: makePool("sound/beep.wav", 6, 1.0),
-    beep2: makePool("sound/beep2.wav", 4, 1.0),
+    beep: makePool("sound/beep.wav", 6, 1.0),    // 3,2,1
+    beep2: makePool("sound/beep2.wav", 4, 1.0),  // 0
     go: makePool("sound/go.wav", 4, 1.0),
   };
 
-  let audioUnlocked = false;
-  let unlockScheduled = false;
   let soundEnabled = true;
+  let audioUnlocked = false;
+  let unlockPromise = null; // ★ 解錠の完了待ち用
 
   // ローカル保存（任意）
   try {
@@ -79,48 +106,33 @@ document.addEventListener("DOMContentLoaded", () => {
     if (saved !== null) soundEnabled = saved === "1";
   } catch {}
 
-  // タイマー一元管理
-  const timers = new Set();
-  const addTimeout = (fn, ms) => {
-    const id = setTimeout(() => {
-      timers.delete(id);
-      fn();
-    }, ms);
-    timers.add(id);
-    return id;
-  };
-  const clearAllTimers = () => {
-    timers.forEach(id => clearTimeout(id));
-    timers.clear();
-  };
+  // ★ 解錠を「一度だけ」「完了まで待てる」Promiseにする
+  function unlockAudioAsync() {
+    if (audioUnlocked) return Promise.resolve();
+    if (unlockPromise) return unlockPromise;
 
-  function unlockAudio() {
-    if (audioUnlocked) return;
+    unlockPromise = (async () => {
+      // ここは必ず「ユーザー操作（pointerdown）」から呼ぶこと
+      await SFX.beep.primeSilentlyAsync();  // go を鳴らす必要なし
+      await SFX.beep2.primeSilentlyAsync();
+      await SFX.go.primeSilentlyAsync();
 
-    // 連打で何回も予約しない
-    if (!unlockScheduled) {
-      unlockScheduled = true;
+      audioUnlocked = true;
+    })().catch(() => {
+      // 失敗しても以降の動作は継続
+      audioUnlocked = true;
+    });
 
-      // ★解錠は beep だけ（1人だけ）で十分。ここが一番効く
-      SFX.beep.primeSilently(true);
-
-      // ★残りは後で分散してprime（初回フリーズ＆音ズレの原因を減らす）
-      addTimeout(() => SFX.beep2.primeSilently(true), 300);
-      addTimeout(() => SFX.go.primeSilently(true), 700);
-
-      // 少し待って「解錠済み」扱い（Safariの内部準備が追いつく）
-      addTimeout(() => {
-        audioUnlocked = true;
-      }, 120);
-    }
+    return unlockPromise;
   }
 
   function playSfx(key) {
     if (!soundEnabled) return;
     if (!audioUnlocked) return;
+
     const s = SFX[key];
     if (!s) return;
-    s.play();
+    s.playNow();
   }
 
   // =====================
@@ -172,10 +184,16 @@ document.addEventListener("DOMContentLoaded", () => {
   let lock = false;
   let miss = 0;
   let startTime = 0;
+
   let destroySafeOpened = 0;
 
-  // 実行世代（これが一番効く：古い処理を無効化）
-  let runToken = 0;
+  // カウントダウン制御
+  let countdownRunning = false;
+  let countdownTimerIds = [];
+  function clearCountdownTimers() {
+    countdownTimerIds.forEach(id => clearTimeout(id));
+    countdownTimerIds = [];
+  }
 
   // =====================
   // モード設定
@@ -184,7 +202,7 @@ document.addEventListener("DOMContentLoaded", () => {
     easy: 3,
     normal: 6,
     hard: 6,
-    destroy: 0
+    destroy: 0 // NT-Dは別ルール
   };
 
   function applyBoardLayout() {
@@ -215,172 +233,57 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // =====================
-  // 共通：ゲーム開始準備（タイマー掃除など）
-  // =====================
-  function resetForNewStart() {
-    runToken++;            // ★古い処理を全部無効化
-    clearAllTimers();      // ★NT-D演出タイマーも含めて全部止める
-
-    // UI/状態
-    first = null;
-    lock = false;
-    miss = 0;
-    destroySafeOpened = 0;
-
-    // 盤面
-    board.innerHTML = "";
-    missArea.innerHTML = "";
-  }
-
-  // =====================
-  // ボタン類
-  // =====================
-  document.querySelectorAll(".modeBtn").forEach(btn => {
-    btn.addEventListener("pointerdown", (e) => {
-      e.preventDefault();
-
-      // まず解錠（重いprimeをここで全員やらないのがポイント）
-      unlockAudio();
-
-      // 連打対策：毎回新規開始扱い
-      resetForNewStart();
-
-      const selected = btn.dataset.mode;
-      mode = selected || "easy";
-
-      // 演出リセット
-      const destroyBtn = document.querySelector('.modeBtn[data-mode="destroy"]');
-      destroyBtn?.classList.remove("charging");
-      screens.start?.classList.remove("flicker");
-
-      if (mode !== "destroy") {
-        setStartNeon(false);
-        startCountdown();
-        return;
-      }
-
-      // ===== NT-D演出 =====
-      setStartNeon(true);
-
-      // CSS transition/animation を確実に発火させるため次フレームで付与
-      requestAnimationFrame(() => destroyBtn?.classList.add("charging"));
-
-      const t = runToken;
-
-      // 3秒後チカチカ
-      addTimeout(() => {
-        if (t !== runToken) return;
-        screens.start?.classList.add("flicker");
-      }, 3000);
-
-      // 4秒後開始
-      addTimeout(() => {
-        if (t !== runToken) return;
-        screens.start?.classList.remove("flicker");
-        destroyBtn?.classList.remove("charging");
-        startCountdown();
-      }, 4000);
-    });
-  });
-
-  shotBtn?.addEventListener("pointerdown", (e) => {
-    e.preventDefault();
-    unlockAudio();
-    // ★初回の「謎のgo先鳴り」は prime全員実行が原因になりがちなので、これだけは押した時だけ鳴る
-    playSfx("go");
-  });
-
-  helpBtn?.addEventListener("pointerdown", (e) => {
-    e.preventDefault();
-    unlockAudio();
-    setScreen("help");
-  });
-
-  backFromHelpBtn?.addEventListener("pointerdown", (e) => {
-    e.preventDefault();
-    unlockAudio();
-    setScreen("start");
-  });
-
-  soundBtn?.addEventListener("pointerdown", (e) => {
-    e.preventDefault();
-    unlockAudio();
-    soundEnabled = !soundEnabled;
-    renderSoundIcon();
-    try { localStorage.setItem("soundEnabled", soundEnabled ? "1" : "0"); } catch {}
-  });
-
-  backBtn?.addEventListener("pointerdown", (e) => {
-    e.preventDefault();
-    unlockAudio();
-    setStartNeon(false);
-    setScreen("start");
-  });
-
-  retryBtn?.addEventListener("pointerdown", (e) => {
-    e.preventDefault();
-    unlockAudio();
-    resetForNewStart();
-    startCountdown();
-  });
-
-  // =====================
-  // カウントダウン（最安定：rAF方式）
+  // カウントダウン（最安定：予約時刻方式）
   // - 3,2,1 は beep
   // - 0 は beep2
-  // ※ “表示が変わった瞬間だけ鳴らす” ので、詰まっても連発しにくい
   // =====================
   function startCountdown() {
-    const t = runToken;
+    if (countdownRunning) return;
+    countdownRunning = true;
+
+    clearCountdownTimers();
 
     setScreen("game");
+    board.innerHTML = "";
+    missArea.innerHTML = "";
     applyBoardLayout();
+
+    // 状態リセット
+    miss = 0;
+    first = null;
+    lock = false;
+    destroySafeOpened = 0;
     renderStatus();
 
     countdownEl.classList.remove("hidden");
 
-    const total = 3;   // 3,2,1,0
-    const start = performance.now() + 140; // ★初回の詰まり回避：ほんの少し待って開始
+    const steps = [3, 2, 1, 0];
+    steps.forEach((num, i) => {
+      const id = setTimeout(() => {
+        if (!countdownRunning) return;
 
-    let lastShown = null;
+        countdownEl.textContent = String(num);
 
-    function frame(now) {
-      if (t !== runToken) return; // 古い開始は無視
-
-      const elapsed = Math.max(0, now - start);
-      const sec = Math.floor(elapsed / 1000); // 0,1,2,3...
-      const show = Math.max(0, total - sec);  // 3,2,1,0
-
-      if (show !== lastShown) {
-        countdownEl.textContent = String(show);
-        if (show === 0) playSfx("beep2");
+        if (num === 0) playSfx("beep2");
         else playSfx("beep");
-        lastShown = show;
-      }
+      }, i * 1000);
 
-      if (show === 0) {
-        // 0を少し見せて開始
-        addTimeout(() => {
-          if (t !== runToken) return;
-          countdownEl.classList.add("hidden");
-          startGame();
-        }, 220);
-        return;
-      }
+      countdownTimerIds.push(id);
+    });
 
-      requestAnimationFrame(frame);
-    }
-
-    // 初期表示（この瞬間に鳴らすとズレるので、frame側で統一）
-    countdownEl.textContent = "3";
-    requestAnimationFrame(frame);
+    // 0表示の後、少し待って開始
+    countdownTimerIds.push(setTimeout(() => {
+      if (!countdownRunning) return;
+      countdownEl.classList.add("hidden");
+      countdownRunning = false;
+      startGame();
+    }, 3500));
   }
 
   // =====================
   // ゲーム開始
   // =====================
   function startGame() {
-    startTime = Date.now();
     if (mode === "destroy") startDestroyGame();
     else startMemoryGame();
   }
@@ -391,11 +294,14 @@ document.addEventListener("DOMContentLoaded", () => {
   function startMemoryGame() {
     const total = modeSetting[mode];
     const names = [];
+
+    // v02～（例: easy=3 => v02,v03,v04）
     for (let i = 2; i < 2 + total; i++) {
       names.push("v" + i.toString().padStart(2, "0"));
     }
 
     const cards = [...names, ...names].sort(() => Math.random() - 0.5);
+    startTime = Date.now();
 
     cards.forEach(name => {
       const card = document.createElement("div");
@@ -425,7 +331,7 @@ document.addEventListener("DOMContentLoaded", () => {
             lock = false;
             checkClearMemory();
           } else {
-            addTimeout(() => {
+            setTimeout(() => {
               img.src = BACK_SRC;
               first.src = BACK_SRC;
               img.dataset.open = "0";
@@ -448,9 +354,14 @@ document.addEventListener("DOMContentLoaded", () => {
   // =====================
   function startDestroyGame() {
     const pool = ["v01", "v02", "v04", "v05", "v06", "v07"];
-    const safe11 = Array.from({ length: 11 }, () => pool[Math.floor(Math.random() * pool.length)]);
+
+    const safe11 = Array.from({ length: 11 }, () => {
+      return pool[Math.floor(Math.random() * pool.length)];
+    });
+
     const cards = [...safe11, "v03"].sort(() => Math.random() - 0.5);
 
+    startTime = Date.now();
     destroySafeOpened = 0;
     renderStatus();
 
@@ -476,7 +387,7 @@ document.addEventListener("DOMContentLoaded", () => {
         if (name === "v03") {
           lock = true;
           playSfx("go"); // ★めくった瞬間
-          addTimeout(() => showTequilaLose(false), 60);
+          setTimeout(() => showTequilaLose(false), 60);
           return;
         }
 
@@ -485,7 +396,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         if (destroySafeOpened >= 11) {
           lock = true;
-          addTimeout(() => {
+          setTimeout(() => {
             launchConfetti();
             const time = ((Date.now() - startTime) / 1000).toFixed(1);
             resultText.textContent = "SURVIVED!!";
@@ -522,7 +433,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // =====================
-  // v03演出
+  // v03演出（ランダム台詞入り）
   // =====================
   function showTequilaLose(playSound = true) {
     if (playSound) playSfx("go");
@@ -550,11 +461,13 @@ document.addEventListener("DOMContentLoaded", () => {
     img.style.objectFit = "contain";
 
     const text = document.createElement("div");
-    text.textContent = "GO！テキーラ！！";
+    text.textContent = pickTequilaLine(); // ★ランダム表示
     text.style.color = "#fff";
-    text.style.fontSize = "clamp(28px, 6vw, 64px)";
+    text.style.fontSize = "clamp(22px, 6vw, 58px)";
     text.style.fontWeight = "800";
     text.style.letterSpacing = "0.04em";
+    text.style.textAlign = "center";
+    text.style.padding = "0 14px";
     text.style.textShadow = "0 0 10px rgba(255, 40, 40, 0.25), 0 0 22px rgba(255, 0, 120, 0.18)";
 
     const btnRow = document.createElement("div");
@@ -574,10 +487,10 @@ document.addEventListener("DOMContentLoaded", () => {
     retry.style.borderRadius = "12px";
     retry.style.border = "none";
     retry.style.cursor = "pointer";
-    retry.addEventListener("pointerdown", (e) => {
+    retry.addEventListener("pointerdown", async (e) => {
       e.preventDefault();
+      await unlockAudioAsync();
       overlay.remove();
-      resetForNewStart();
       startCountdown();
     });
 
@@ -588,8 +501,9 @@ document.addEventListener("DOMContentLoaded", () => {
     back.style.borderRadius = "12px";
     back.style.border = "none";
     back.style.cursor = "pointer";
-    back.addEventListener("pointerdown", (e) => {
+    back.addEventListener("pointerdown", async (e) => {
       e.preventDefault();
+      await unlockAudioAsync();
       overlay.remove();
       setStartNeon(false);
       setScreen("start");
@@ -659,9 +573,102 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // =====================
+  // ボタン類
+  // =====================
+
+  // モードボタン（EASY/NORMAL/HARD/NT-D）
+  document.querySelectorAll(".modeBtn").forEach(btn => {
+    btn.addEventListener("pointerdown", async (e) => {
+      e.preventDefault();
+
+      // ★ まず解錠を完了まで待つ（ここが今回の肝）
+      await unlockAudioAsync();
+
+      const selected = btn.dataset.mode;
+      mode = selected || "easy";
+
+      // 進行中カウントダウンがあれば止める
+      clearCountdownTimers();
+      countdownRunning = false;
+
+      // 連打対策：演出リセット
+      const destroyBtn = document.querySelector('.modeBtn[data-mode="destroy"]');
+      destroyBtn?.classList.remove("charging");
+      screens.start?.classList.remove("flicker");
+
+      if (mode !== "destroy") {
+        setStartNeon(false);
+        startCountdown();
+        return;
+      }
+
+      // ===== NT-D演出 =====
+      setStartNeon(true);
+
+      // 3秒でピンク化（CSS .charging）
+      requestAnimationFrame(() => destroyBtn?.classList.add("charging"));
+
+      // 3秒後チカチカ
+      countdownTimerIds.push(setTimeout(() => {
+        screens.start?.classList.add("flicker");
+      }, 3000));
+
+      // 4秒後開始
+      countdownTimerIds.push(setTimeout(() => {
+        screens.start?.classList.remove("flicker");
+        destroyBtn?.classList.remove("charging");
+        startCountdown();
+      }, 4000));
+    });
+  });
+
+  // 左下：ショット（go音）
+  shotBtn?.addEventListener("pointerdown", async (e) => {
+    e.preventDefault();
+    await unlockAudioAsync();
+    playSfx("go");
+  });
+
+  // 下中央：ヘルプ
+  helpBtn?.addEventListener("pointerdown", async (e) => {
+    e.preventDefault();
+    await unlockAudioAsync();
+    setScreen("help");
+  });
+
+  backFromHelpBtn?.addEventListener("pointerdown", async (e) => {
+    e.preventDefault();
+    await unlockAudioAsync();
+    setScreen("start");
+  });
+
+  // 右下：サウンドON/OFF
+  soundBtn?.addEventListener("pointerdown", async (e) => {
+    e.preventDefault();
+    await unlockAudioAsync();
+    soundEnabled = !soundEnabled;
+    renderSoundIcon();
+    try { localStorage.setItem("soundEnabled", soundEnabled ? "1" : "0"); } catch {}
+  });
+
+  backBtn?.addEventListener("pointerdown", async (e) => {
+    e.preventDefault();
+    await unlockAudioAsync();
+    setStartNeon(false);
+    setScreen("start");
+  });
+
+  retryBtn?.addEventListener("pointerdown", async (e) => {
+    e.preventDefault();
+    await unlockAudioAsync();
+    startCountdown();
+  });
+
+  // =====================
   // 初期画面
   // =====================
   setStartNeon(false);
   setScreen("start");
 });
+
 
