@@ -1,24 +1,11 @@
 // ==============================
 // Quattro Vageena : Last Call
-// Complete JS / iPhone超安定版（WebAudio + 基準時刻方式）
+// Complete JS / iPhone安定版（WebAudio優先 + 失敗時HTMLAudioフォールバック）
 //
-// ✅ 初回だけ「ピコピコ鳴り響く」対策：
-//    - unlock（ユーザー操作）で AudioContext を作成
-//    - その場で各SEを decodeAudioData してキャッシュ（以後ズレ激減）
-//    - prime（無音連打）やHTMLAudioのpool連打を廃止
-//
-// ✅ カウントと音ズレ対策：
-//    - “基準時刻方式” (AudioContext.currentTime + offset)
-//    - 表示は performance.now() に同期して補正
-//
-// ✅ カウント0は beep2.wav
-// ✅ NT-D(v03)で負け：ランダム台詞（指定5種）
-// ✅ NT-D選択演出：3秒で文字ピンク化 → 1秒フリッカー → 開始
-// ✅ サウンドON/OFF（右下）
-// ✅ ショット（左下）で go.wav
-// ✅ help（下中央）
-//
-// ※ これを script.js に「丸ごと」貼り替えてください
+// ✅ 音が鳴らない対策：WebAudioが失敗したらHTMLAudioで鳴らす
+// ✅ カウントと音ズレ対策：基準時刻方式（performance.now補正）
+// ✅ 0 は beep2.wav
+// ✅ NT-D v03負け：ランダム台詞のみ（固定「GOテキーラ」撤去）
 // ==============================
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -48,8 +35,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function setStartNeon(on) {
-    if (!screens.start) return;
-    screens.start.classList.toggle("neon", !!on);
+    screens.start?.classList.toggle("neon", !!on);
   }
 
   // =====================
@@ -68,7 +54,6 @@ document.addEventListener("DOMContentLoaded", () => {
   const backBtn = document.getElementById("backBtn");
   const retryBtn = document.getElementById("retryBtn");
 
-  // 必須要素チェック
   if (!screens.start || !screens.game || !board || !countdownEl || !missArea || !resultText || !timeText) {
     alert("HTMLのIDが合ってない可能性があります。\nboard / countdown / missArea / resultText / timeText を確認してね。");
     return;
@@ -82,14 +67,10 @@ document.addEventListener("DOMContentLoaded", () => {
   let lock = false;
   let miss = 0;
   let startTime = 0;
-
-  // NT-D用
   let destroySafeOpened = 0;
 
   // 二重起動防止
   let countdownRunning = false;
-
-  // カウントダウン管理（キャンセル用）
   let countdownRAF = 0;
   let countdownFinishTimeout = 0;
 
@@ -103,8 +84,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // =====================
   // モード設定（神経衰弱）
-  // easy: 3種類×2枚=6枚
-  // normal/hard: 6種類×2枚=12枚
   // =====================
   const modeSetting = {
     easy: 3,
@@ -135,129 +114,6 @@ document.addEventListener("DOMContentLoaded", () => {
   renderSoundIcon();
 
   // =====================
-  // WebAudio（超安定）
-  // =====================
-  let audioCtx = null;
-  let audioReady = false;     // decode完了
-  let audioUnlocking = false; // 連打対策
-  let audioUnlocked = false;  // context動作OK
-
-  const SOUND_FILES = {
-    beep: "sound/beep.wav",
-    beep2: "sound/beep2.wav",
-    go: "sound/go.wav",
-  };
-
-  const buffers = {
-    beep: null,
-    beep2: null,
-    go: null,
-  };
-
-  async function fetchArrayBuffer(url) {
-    const res = await fetch(url, { cache: "force-cache" });
-    if (!res.ok) throw new Error("Sound fetch failed: " + url);
-    return await res.arrayBuffer();
-  }
-
-  async function ensureAudioUnlocked() {
-    if (audioUnlocked) return true;
-    if (audioUnlocking) return false;
-
-    audioUnlocking = true;
-    try {
-      audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
-
-      // iOS: resumeが必要
-      if (audioCtx.state === "suspended") {
-        await audioCtx.resume();
-      }
-
-      // デコード（初回だけ）
-      if (!audioReady) {
-        const entries = Object.entries(SOUND_FILES);
-        for (const [key, url] of entries) {
-          const ab = await fetchArrayBuffer(url);
-          // Safariの古いdecodeAudioData互換
-          buffers[key] = await new Promise((resolve, reject) => {
-            audioCtx.decodeAudioData(
-              ab.slice(0),
-              (buf) => resolve(buf),
-              (err) => reject(err)
-            );
-          });
-        }
-        audioReady = true;
-      }
-
-      // “無音”で1回鳴らして完全解錠（音量0のGainで）
-      const g = audioCtx.createGain();
-      g.gain.value = 0.0;
-      g.connect(audioCtx.destination);
-
-      const src = audioCtx.createBufferSource();
-      src.buffer = buffers.beep || null;
-      src.connect(g);
-      src.start(audioCtx.currentTime);
-      src.stop(audioCtx.currentTime + 0.01);
-
-      audioUnlocked = true;
-      return true;
-    } catch (e) {
-      // 失敗してもゲームは動かす（音だけ無し）
-      console.log(e);
-      audioUnlocked = false;
-      return false;
-    } finally {
-      audioUnlocking = false;
-    }
-  }
-
-  function playSfx(key, whenSec = null) {
-    if (!soundEnabled) return;
-    if (!audioUnlocked || !audioCtx || !audioReady) return;
-    const buf = buffers[key];
-    if (!buf) return;
-
-    const src = audioCtx.createBufferSource();
-    src.buffer = buf;
-
-    // クリックノイズ対策：超短いフェード
-    const gain = audioCtx.createGain();
-    gain.gain.setValueAtTime(0.0001, audioCtx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(1.0, audioCtx.currentTime + 0.005);
-    gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.25);
-
-    src.connect(gain);
-    gain.connect(audioCtx.destination);
-
-    const t = (whenSec == null) ? audioCtx.currentTime : whenSec;
-    src.start(t);
-    // stopは保険
-    src.stop(t + Math.min(1.0, buf.duration + 0.05));
-  }
-
-  // =====================
-  // 表示：HARDは✖、NT-Dは進捗
-  // =====================
-  function renderStatus() {
-    if (mode === "hard") {
-      const max = 5;
-      missArea.textContent =
-        "MISS : " +
-        "✖".repeat(miss) +
-        "・".repeat(Math.max(0, max - miss));
-      return;
-    }
-    if (mode === "destroy") {
-      const remain = Math.max(0, 11 - destroySafeOpened);
-      missArea.textContent = `SAFE : ${destroySafeOpened}/11   残り ${remain}`;
-      return;
-    }
-    missArea.textContent = "";
-  }
-
-  // =====================
   // NT-D v03負け台詞（ランダム）
   // =====================
   const tequilaLines = [
@@ -273,48 +129,186 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // =====================
-  // ボタン類（イベント登録）
+  // サウンド：WebAudio優先 + HTMLAudioフォールバック
   // =====================
+  const SOUND_FILES = {
+    beep: "sound/beep.wav",
+    beep2: "sound/beep2.wav",
+    go: "sound/go.wav",
+  };
 
-  // モードボタン
+  // ---- HTMLAudio fallback（確実に鳴る保険）
+  const htmlAudio = {
+    beep: new Audio(SOUND_FILES.beep),
+    beep2: new Audio(SOUND_FILES.beep2),
+    go: new Audio(SOUND_FILES.go),
+  };
+  Object.values(htmlAudio).forEach(a => {
+    a.preload = "auto";
+    a.volume = 1.0;
+  });
+
+  function playHtml(key) {
+    if (!soundEnabled) return;
+    const base = htmlAudio[key];
+    if (!base) return;
+    const a = base.cloneNode(); // 同時再生対策
+    a.volume = base.volume;
+    try { a.currentTime = 0; } catch {}
+    a.play().catch(() => {});
+  }
+
+  // ---- WebAudio（成功したらこちらを使う）
+  let audioCtx = null;
+  let audioReady = false;
+  let audioUnlocked = false;
+  let audioUnlocking = false;
+  let useWebAudio = false;
+
+  const buffers = { beep: null, beep2: null, go: null };
+
+  async function fetchArrayBuffer(url) {
+    const res = await fetch(url, { cache: "force-cache" });
+    if (!res.ok) throw new Error("Sound fetch failed: " + url);
+    return await res.arrayBuffer();
+  }
+
+  async function ensureAudioUnlocked() {
+    if (audioUnlocked) return true;
+    if (audioUnlocking) return false;
+
+    audioUnlocking = true;
+    try {
+      // AudioContext生成
+      audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+
+      if (audioCtx.state === "suspended") {
+        await audioCtx.resume();
+      }
+
+      // デコード（初回だけ）
+      if (!audioReady) {
+        for (const [key, url] of Object.entries(SOUND_FILES)) {
+          const ab = await fetchArrayBuffer(url);
+          buffers[key] = await new Promise((resolve, reject) => {
+            audioCtx.decodeAudioData(
+              ab.slice(0),
+              (buf) => resolve(buf),
+              (err) => reject(err)
+            );
+          });
+        }
+        audioReady = true;
+      }
+
+      // 無音で1回鳴らして完全解錠
+      const g = audioCtx.createGain();
+      g.gain.value = 0.0;
+      g.connect(audioCtx.destination);
+
+      const src = audioCtx.createBufferSource();
+      src.buffer = buffers.beep;
+      src.connect(g);
+      src.start(audioCtx.currentTime);
+      src.stop(audioCtx.currentTime + 0.01);
+
+      audioUnlocked = true;
+      useWebAudio = true;
+      return true;
+    } catch (e) {
+      // WebAudio失敗 → HTMLAudioにフォールバック
+      console.log("WebAudio disabled -> fallback to HTMLAudio", e);
+      useWebAudio = false;
+      audioUnlocked = true; // “ユーザー操作済み”扱い（HTMLAudioが鳴る）
+      return false;
+    } finally {
+      audioUnlocking = false;
+    }
+  }
+
+  function playWeb(key, whenSec = null) {
+    if (!soundEnabled) return;
+    if (!useWebAudio || !audioCtx || !audioReady) return;
+    const buf = buffers[key];
+    if (!buf) return;
+
+    const src = audioCtx.createBufferSource();
+    src.buffer = buf;
+
+    const gain = audioCtx.createGain();
+    gain.gain.setValueAtTime(0.0001, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(1.0, audioCtx.currentTime + 0.005);
+    gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.25);
+
+    src.connect(gain);
+    gain.connect(audioCtx.destination);
+
+    const t = (whenSec == null) ? audioCtx.currentTime : whenSec;
+    src.start(t);
+    src.stop(t + Math.min(1.0, buf.duration + 0.05));
+  }
+
+  // 外部から呼ぶ統一関数
+  function playSfx(key, whenSec = null) {
+    if (!soundEnabled) return;
+
+    // WebAudio成功してる時だけスケジューリング再生
+    if (useWebAudio && whenSec != null) {
+      playWeb(key, whenSec);
+      return;
+    }
+
+    // 通常は（WebAudio優先→ダメならHTML）
+    if (useWebAudio) playWeb(key);
+    else playHtml(key);
+  }
+
+  // =====================
+  // 表示（HARD/NT-D）
+  // =====================
+  function renderStatus() {
+    if (mode === "hard") {
+      const max = 5;
+      missArea.textContent =
+        "MISS : " + "✖".repeat(miss) + "・".repeat(Math.max(0, max - miss));
+      return;
+    }
+    if (mode === "destroy") {
+      const remain = Math.max(0, 11 - destroySafeOpened);
+      missArea.textContent = `SAFE : ${destroySafeOpened}/11   残り ${remain}`;
+      return;
+    }
+    missArea.textContent = "";
+  }
+
+  // =====================
+  // ボタンイベント
+  // =====================
   document.querySelectorAll(".modeBtn").forEach(btn => {
     btn.addEventListener("pointerdown", async (e) => {
       e.preventDefault();
-
-      // ★ 初回の“鳴り響き”対策：
-      //   ここで一度だけ unlock & decode を完了させる（以後安定）
       await ensureAudioUnlocked();
 
       const selected = btn.dataset.mode;
       mode = selected || "easy";
 
-      // 連打対策：演出リセット
       const destroyBtn = document.querySelector('.modeBtn[data-mode="destroy"]');
       destroyBtn?.classList.remove("charging");
       screens.start?.classList.remove("flicker");
 
-      // 進行中カウントダウン停止
       cancelCountdown();
 
-      // NT-D以外
       if (mode !== "destroy") {
         setStartNeon(false);
         startCountdown();
         return;
       }
 
-      // ===== NT-D演出 =====
+      // NT-D演出
       setStartNeon(true);
-
-      // 3秒で文字ピンク化（CSS .charging）
       requestAnimationFrame(() => destroyBtn?.classList.add("charging"));
 
-      // 3秒後に1秒フリッカー
-      setTimeout(() => {
-        screens.start?.classList.add("flicker");
-      }, 3000);
-
-      // 4秒後に開始
+      setTimeout(() => screens.start?.classList.add("flicker"), 3000);
       setTimeout(() => {
         screens.start?.classList.remove("flicker");
         destroyBtn?.classList.remove("charging");
@@ -323,15 +317,12 @@ document.addEventListener("DOMContentLoaded", () => {
     }, { passive: false });
   });
 
-  // 左下：ショット（go音）
   shotBtn?.addEventListener("pointerdown", async (e) => {
     e.preventDefault();
     await ensureAudioUnlocked();
-    // “いきなりgoが鳴る”誤解を避ける：ここは意図通りのgoのみ
     playSfx("go");
   }, { passive: false });
 
-  // 下中央：ヘルプ
   helpBtn?.addEventListener("pointerdown", async (e) => {
     e.preventDefault();
     await ensureAudioUnlocked();
@@ -344,7 +335,6 @@ document.addEventListener("DOMContentLoaded", () => {
     setScreen("start");
   }, { passive: false });
 
-  // 右下：サウンドON/OFF
   soundBtn?.addEventListener("pointerdown", async (e) => {
     e.preventDefault();
     await ensureAudioUnlocked();
@@ -353,7 +343,6 @@ document.addEventListener("DOMContentLoaded", () => {
     try { localStorage.setItem("soundEnabled", soundEnabled ? "1" : "0"); } catch {}
   }, { passive: false });
 
-  // 結果画面：戻る
   backBtn?.addEventListener("pointerdown", async (e) => {
     e.preventDefault();
     await ensureAudioUnlocked();
@@ -361,7 +350,6 @@ document.addEventListener("DOMContentLoaded", () => {
     setScreen("start");
   }, { passive: false });
 
-  // 結果画面：もう一回
   retryBtn?.addEventListener("pointerdown", async (e) => {
     e.preventDefault();
     await ensureAudioUnlocked();
@@ -370,15 +358,13 @@ document.addEventListener("DOMContentLoaded", () => {
   }, { passive: false });
 
   // =====================
-  // カウントダウン（基準時刻方式：表示＆SEのズレ補正）
-  // - 3,2,1 は beep
-  // - 0 は beep2
+  // カウントダウン（基準時刻方式）
+  // 3,2,1: beep / 0: beep2
   // =====================
   function startCountdown() {
     if (countdownRunning) return;
     countdownRunning = true;
 
-    // 念のためキャンセル
     cancelCountdown();
     countdownRunning = true;
 
@@ -387,7 +373,6 @@ document.addEventListener("DOMContentLoaded", () => {
     missArea.innerHTML = "";
     applyBoardLayout();
 
-    // 状態リセット
     miss = 0;
     first = null;
     lock = false;
@@ -396,34 +381,26 @@ document.addEventListener("DOMContentLoaded", () => {
 
     countdownEl.classList.remove("hidden");
 
-    // ここが“基準”
     const t0Perf = performance.now();
-    const t0Audio = (audioCtx && audioUnlocked && audioReady) ? audioCtx.currentTime : null;
-
-    // 表示する値
     const seq = [3, 2, 1, 0];
 
-    // 音のスケジュール（WebAudioが使える時だけ）
-    // 余裕を持って +0.06s（Safariで直後startが不安定な時がある）
-    const audioBase = (t0Audio != null) ? (t0Audio + 0.06) : null;
-
-    if (audioBase != null) {
-      // 3,2,1
-      playSfx("beep", audioBase + 0.0);
-      playSfx("beep", audioBase + 1.0);
-      playSfx("beep", audioBase + 2.0);
-      // 0
+    // WebAudioが使えるなら“予約”してズレ最小化
+    let audioBase = null;
+    if (useWebAudio && audioCtx && audioReady) {
+      audioBase = audioCtx.currentTime + 0.06; // Safariのため少し余裕
+      playSfx("beep",  audioBase + 0.0);
+      playSfx("beep",  audioBase + 1.0);
+      playSfx("beep",  audioBase + 2.0);
       playSfx("beep2", audioBase + 3.0);
     }
 
-    // 表示側：performance.now基準で誤差補正（drift補正）
+    // HTMLAudioの場合は表示が切り替わった瞬間に鳴らす（予約は不安定なので）
     let lastShown = null;
 
     const tick = () => {
       if (!countdownRunning) return;
 
-      const elapsed = (performance.now() - t0Perf) / 1000; // sec
-      // 0.0-0.999 => 3, 1.0-1.999 =>2, 2.0-2.999=>1, 3.0-3.999=>0
+      const elapsed = (performance.now() - t0Perf) / 1000;
       const idx = Math.min(3, Math.floor(elapsed));
       const show = seq[idx];
 
@@ -431,12 +408,14 @@ document.addEventListener("DOMContentLoaded", () => {
         countdownEl.textContent = String(show);
         lastShown = show;
 
-        // WebAudioが使えない環境のフォールバック（ほぼ無い想定）
-        // ただしここで“初回鳴り響き”が出やすいので、Audioが無い時は鳴らさない
+        // WebAudio予約が無い（=HTML fallback）のときだけここで鳴らす
+        if (!(audioBase != null)) {
+          if (show === 0) playSfx("beep2");
+          else playSfx("beep");
+        }
       }
 
       if (show === 0 && elapsed >= 3.05) {
-        // 0 を少し見せてから開始
         countdownFinishTimeout = setTimeout(() => {
           if (!countdownRunning) return;
           countdownEl.classList.add("hidden");
@@ -449,14 +428,18 @@ document.addEventListener("DOMContentLoaded", () => {
       countdownRAF = requestAnimationFrame(tick);
     };
 
-    // 最初の表示は即
+    // 初期表示
     countdownEl.textContent = "3";
     lastShown = 3;
+
+    // HTML fallbackなら最初も鳴らす（Web予約があるなら鳴らさない）
+    if (!(audioBase != null)) playSfx("beep");
+
     countdownRAF = requestAnimationFrame(tick);
   }
 
   // =====================
-  // ゲーム開始（分岐）
+  // ゲーム開始
   // =====================
   function startGame() {
     if (mode === "destroy") startDestroyGame();
@@ -470,7 +453,6 @@ document.addEventListener("DOMContentLoaded", () => {
     const total = modeSetting[mode];
     const names = [];
 
-    // v02～（例: easy=3 => v02,v03,v04）
     for (let i = 2; i < 2 + total; i++) {
       names.push("v" + i.toString().padStart(2, "0"));
     }
@@ -561,11 +543,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         if (name === "v03") {
           lock = true;
-
-          // ★めくった瞬間に鳴らす（即時）
-          playSfx("go");
-
-          // UIはちょい後
+          playSfx("go"); // めくった瞬間
           setTimeout(() => showTequilaLose(false), 60);
           return;
         }
@@ -612,7 +590,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // =====================
-  // v03演出（ランダム台詞 + ボタン）
+  // v03演出（ランダム台詞のみ）
   // =====================
   function showTequilaLose(playSound = true) {
     if (playSound) playSfx("go");
@@ -630,7 +608,7 @@ document.addEventListener("DOMContentLoaded", () => {
     overlay.style.flexDirection = "column";
     overlay.style.alignItems = "center";
     overlay.style.justifyContent = "center";
-    overlay.style.gap = "14px";
+    overlay.style.gap = "16px";
 
     const img = document.createElement("img");
     img.src = "img/v03.jpg";
@@ -639,25 +617,15 @@ document.addEventListener("DOMContentLoaded", () => {
     img.style.height = "70vh";
     img.style.objectFit = "contain";
 
-    // ランダム台詞
+    // ✅ ランダム台詞のみ（固定テキストは出さない）
     const line = document.createElement("div");
     line.textContent = pickTequilaLine();
     line.style.color = "#ff3bd4";
-    line.style.fontSize = "clamp(18px, 4.6vw, 38px)";
+    line.style.fontSize = "clamp(18px, 4.8vw, 40px)";
     line.style.fontWeight = "900";
     line.style.letterSpacing = "0.04em";
     line.style.textShadow = "0 0 14px rgba(255, 60, 212, 0.55)";
 
-    // テキスト
-    const text = document.createElement("div");
-    text.textContent = "GO！テキーラ！！";
-    text.style.color = "#fff";
-    text.style.fontSize = "clamp(26px, 6vw, 60px)";
-    text.style.fontWeight = "800";
-    text.style.letterSpacing = "0.04em";
-    text.style.textShadow = "0 0 10px rgba(255, 40, 40, 0.25), 0 0 22px rgba(255, 0, 120, 0.18)";
-
-    // ボタン
     const btnRow = document.createElement("div");
     btnRow.style.position = "absolute";
     btnRow.style.left = "0";
@@ -701,7 +669,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
     overlay.appendChild(img);
     overlay.appendChild(line);
-    overlay.appendChild(text);
     overlay.appendChild(btnRow);
 
     document.body.appendChild(overlay);
@@ -766,4 +733,5 @@ document.addEventListener("DOMContentLoaded", () => {
   setStartNeon(false);
   setScreen("start");
 });
+
 
