@@ -1,7 +1,6 @@
 // =====================
 // Quattro Vageena : Last Call (Complete JS / iPhone安定版)
 // =====================
-
 document.addEventListener("DOMContentLoaded", () => {
   // iPhoneでも原因が分かるように（不要なら消してOK）
   window.onerror = function (msg, url, line, col) {
@@ -26,28 +25,38 @@ document.addEventListener("DOMContentLoaded", () => {
     let idx = 0;
 
     return {
-      primeSilently() {
-        // 無音で一瞬再生→停止（解錠＆デコード促進）
-        pool.forEach(a => {
+      // ★重要：primeは「全員」ではなく「1人だけ」を既定に（負荷を下げる）
+      primeSilently(oneOnly = true) {
+        const targets = oneOnly ? [pool[0]] : pool;
+
+        targets.forEach(a => {
           const v = a.volume;
+          const m = a.muted;
+
+          // ★ volume=0 だけだと端末によっては漏れることがあるので muted 併用
+          a.muted = true;
           a.volume = 0.0;
+
           try { a.currentTime = 0; } catch {}
           a.play().then(() => {
             a.pause();
             try { a.currentTime = 0; } catch {}
+            a.muted = m;
             a.volume = v;
           }).catch(() => {
+            a.muted = m;
             a.volume = v;
           });
         });
       },
+
       play() {
         const a = pool[idx];
         idx = (idx + 1) % pool.length;
-
         try { a.currentTime = 0; } catch {}
         a.play().catch(() => {});
       },
+
       setVolume(v) {
         pool.forEach(a => (a.volume = v));
       }
@@ -61,6 +70,7 @@ document.addEventListener("DOMContentLoaded", () => {
   };
 
   let audioUnlocked = false;
+  let unlockScheduled = false;
   let soundEnabled = true;
 
   // ローカル保存（任意）
@@ -69,14 +79,40 @@ document.addEventListener("DOMContentLoaded", () => {
     if (saved !== null) soundEnabled = saved === "1";
   } catch {}
 
+  // タイマー一元管理
+  const timers = new Set();
+  const addTimeout = (fn, ms) => {
+    const id = setTimeout(() => {
+      timers.delete(id);
+      fn();
+    }, ms);
+    timers.add(id);
+    return id;
+  };
+  const clearAllTimers = () => {
+    timers.forEach(id => clearTimeout(id));
+    timers.clear();
+  };
+
   function unlockAudio() {
     if (audioUnlocked) return;
-    audioUnlocked = true;
 
-    // 解錠＆デコード促進（無音）
-    SFX.beep.primeSilently();
-    SFX.beep2.primeSilently();
-    SFX.go.primeSilently();
+    // 連打で何回も予約しない
+    if (!unlockScheduled) {
+      unlockScheduled = true;
+
+      // ★解錠は beep だけ（1人だけ）で十分。ここが一番効く
+      SFX.beep.primeSilently(true);
+
+      // ★残りは後で分散してprime（初回フリーズ＆音ズレの原因を減らす）
+      addTimeout(() => SFX.beep2.primeSilently(true), 300);
+      addTimeout(() => SFX.go.primeSilently(true), 700);
+
+      // 少し待って「解錠済み」扱い（Safariの内部準備が追いつく）
+      addTimeout(() => {
+        audioUnlocked = true;
+      }, 120);
+    }
   }
 
   function playSfx(key) {
@@ -136,17 +172,10 @@ document.addEventListener("DOMContentLoaded", () => {
   let lock = false;
   let miss = 0;
   let startTime = 0;
-
   let destroySafeOpened = 0;
 
-  // 二重起動防止
-  let countdownRunning = false;
-  let countdownTimerIds = [];
-
-  function clearCountdownTimers() {
-    countdownTimerIds.forEach(id => clearTimeout(id));
-    countdownTimerIds = [];
-  }
+  // 実行世代（これが一番効く：古い処理を無効化）
+  let runToken = 0;
 
   // =====================
   // モード設定
@@ -186,24 +215,43 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // =====================
+  // 共通：ゲーム開始準備（タイマー掃除など）
+  // =====================
+  function resetForNewStart() {
+    runToken++;            // ★古い処理を全部無効化
+    clearAllTimers();      // ★NT-D演出タイマーも含めて全部止める
+
+    // UI/状態
+    first = null;
+    lock = false;
+    miss = 0;
+    destroySafeOpened = 0;
+
+    // 盤面
+    board.innerHTML = "";
+    missArea.innerHTML = "";
+  }
+
+  // =====================
   // ボタン類
   // =====================
   document.querySelectorAll(".modeBtn").forEach(btn => {
     btn.addEventListener("pointerdown", (e) => {
       e.preventDefault();
+
+      // まず解錠（重いprimeをここで全員やらないのがポイント）
       unlockAudio();
+
+      // 連打対策：毎回新規開始扱い
+      resetForNewStart();
 
       const selected = btn.dataset.mode;
       mode = selected || "easy";
 
-      // 連打対策：演出リセット
+      // 演出リセット
       const destroyBtn = document.querySelector('.modeBtn[data-mode="destroy"]');
       destroyBtn?.classList.remove("charging");
       screens.start?.classList.remove("flicker");
-
-      // 進行中カウントダウンがあれば止める
-      clearCountdownTimers();
-      countdownRunning = false;
 
       if (mode !== "destroy") {
         setStartNeon(false);
@@ -213,25 +261,32 @@ document.addEventListener("DOMContentLoaded", () => {
 
       // ===== NT-D演出 =====
       setStartNeon(true);
+
+      // CSS transition/animation を確実に発火させるため次フレームで付与
       requestAnimationFrame(() => destroyBtn?.classList.add("charging"));
 
+      const t = runToken;
+
       // 3秒後チカチカ
-      countdownTimerIds.push(setTimeout(() => {
+      addTimeout(() => {
+        if (t !== runToken) return;
         screens.start?.classList.add("flicker");
-      }, 3000));
+      }, 3000);
 
       // 4秒後開始
-      countdownTimerIds.push(setTimeout(() => {
+      addTimeout(() => {
+        if (t !== runToken) return;
         screens.start?.classList.remove("flicker");
         destroyBtn?.classList.remove("charging");
         startCountdown();
-      }, 4000));
+      }, 4000);
     });
   });
 
   shotBtn?.addEventListener("pointerdown", (e) => {
     e.preventDefault();
     unlockAudio();
+    // ★初回の「謎のgo先鳴り」は prime全員実行が原因になりがちなので、これだけは押した時だけ鳴る
     playSfx("go");
   });
 
@@ -265,62 +320,67 @@ document.addEventListener("DOMContentLoaded", () => {
   retryBtn?.addEventListener("pointerdown", (e) => {
     e.preventDefault();
     unlockAudio();
+    resetForNewStart();
     startCountdown();
   });
 
   // =====================
-  // カウントダウン（最安定：予約時刻方式）
+  // カウントダウン（最安定：rAF方式）
   // - 3,2,1 は beep
   // - 0 は beep2
+  // ※ “表示が変わった瞬間だけ鳴らす” ので、詰まっても連発しにくい
   // =====================
   function startCountdown() {
-    if (countdownRunning) return;
-    countdownRunning = true;
-
-    clearCountdownTimers();
+    const t = runToken;
 
     setScreen("game");
-    board.innerHTML = "";
-    missArea.innerHTML = "";
     applyBoardLayout();
-
-    // 状態リセット
-    miss = 0;
-    first = null;
-    lock = false;
-    destroySafeOpened = 0;
     renderStatus();
 
     countdownEl.classList.remove("hidden");
 
-    const steps = [3, 2, 1, 0];
-    steps.forEach((num, i) => {
-      const id = setTimeout(() => {
-        // 途中でキャンセルされたら何もしない
-        if (!countdownRunning) return;
+    const total = 3;   // 3,2,1,0
+    const start = performance.now() + 140; // ★初回の詰まり回避：ほんの少し待って開始
 
-        countdownEl.textContent = String(num);
+    let lastShown = null;
 
-        if (num === 0) playSfx("beep2");
+    function frame(now) {
+      if (t !== runToken) return; // 古い開始は無視
+
+      const elapsed = Math.max(0, now - start);
+      const sec = Math.floor(elapsed / 1000); // 0,1,2,3...
+      const show = Math.max(0, total - sec);  // 3,2,1,0
+
+      if (show !== lastShown) {
+        countdownEl.textContent = String(show);
+        if (show === 0) playSfx("beep2");
         else playSfx("beep");
-      }, i * 1000);
-      countdownTimerIds.push(id);
-    });
+        lastShown = show;
+      }
 
-    // 0表示の後、少し待って開始
-    countdownTimerIds.push(setTimeout(() => {
-      if (!countdownRunning) return;
+      if (show === 0) {
+        // 0を少し見せて開始
+        addTimeout(() => {
+          if (t !== runToken) return;
+          countdownEl.classList.add("hidden");
+          startGame();
+        }, 220);
+        return;
+      }
 
-      countdownEl.classList.add("hidden");
-      countdownRunning = false;
-      startGame();
-    }, 3500));
+      requestAnimationFrame(frame);
+    }
+
+    // 初期表示（この瞬間に鳴らすとズレるので、frame側で統一）
+    countdownEl.textContent = "3";
+    requestAnimationFrame(frame);
   }
 
   // =====================
   // ゲーム開始
   // =====================
   function startGame() {
+    startTime = Date.now();
     if (mode === "destroy") startDestroyGame();
     else startMemoryGame();
   }
@@ -331,13 +391,11 @@ document.addEventListener("DOMContentLoaded", () => {
   function startMemoryGame() {
     const total = modeSetting[mode];
     const names = [];
-
     for (let i = 2; i < 2 + total; i++) {
       names.push("v" + i.toString().padStart(2, "0"));
     }
 
     const cards = [...names, ...names].sort(() => Math.random() - 0.5);
-    startTime = Date.now();
 
     cards.forEach(name => {
       const card = document.createElement("div");
@@ -367,7 +425,7 @@ document.addEventListener("DOMContentLoaded", () => {
             lock = false;
             checkClearMemory();
           } else {
-            setTimeout(() => {
+            addTimeout(() => {
               img.src = BACK_SRC;
               first.src = BACK_SRC;
               img.dataset.open = "0";
@@ -390,14 +448,9 @@ document.addEventListener("DOMContentLoaded", () => {
   // =====================
   function startDestroyGame() {
     const pool = ["v01", "v02", "v04", "v05", "v06", "v07"];
-
-    const safe11 = Array.from({ length: 11 }, () => {
-      return pool[Math.floor(Math.random() * pool.length)];
-    });
-
+    const safe11 = Array.from({ length: 11 }, () => pool[Math.floor(Math.random() * pool.length)]);
     const cards = [...safe11, "v03"].sort(() => Math.random() - 0.5);
 
-    startTime = Date.now();
     destroySafeOpened = 0;
     renderStatus();
 
@@ -423,7 +476,7 @@ document.addEventListener("DOMContentLoaded", () => {
         if (name === "v03") {
           lock = true;
           playSfx("go"); // ★めくった瞬間
-          setTimeout(() => showTequilaLose(false), 60);
+          addTimeout(() => showTequilaLose(false), 60);
           return;
         }
 
@@ -432,7 +485,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         if (destroySafeOpened >= 11) {
           lock = true;
-          setTimeout(() => {
+          addTimeout(() => {
             launchConfetti();
             const time = ((Date.now() - startTime) / 1000).toFixed(1);
             resultText.textContent = "SURVIVED!!";
@@ -524,6 +577,7 @@ document.addEventListener("DOMContentLoaded", () => {
     retry.addEventListener("pointerdown", (e) => {
       e.preventDefault();
       overlay.remove();
+      resetForNewStart();
       startCountdown();
     });
 
@@ -610,3 +664,4 @@ document.addEventListener("DOMContentLoaded", () => {
   setStartNeon(false);
   setScreen("start");
 });
+
