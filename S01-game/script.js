@@ -1,5 +1,9 @@
 // =====================
-// Quattro Vageena : Last Call (Complete JS / iPhone安定版)
+// Quattro Vageena : Last Call (Complete JS / iPhone超安定版)
+// - 起動直後の「ピコピコ」対策：primeは各SFX1個だけ + muted prime
+// - カウントずれ対策：基準時刻方式（drift補正）
+// - 0 は beep2.wav
+// - NT-D v03負け台詞 ランダム
 // =====================
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -13,9 +17,7 @@ document.addEventListener("DOMContentLoaded", () => {
   // =====================
   const BACK_SRC = "img/vback.jpg";
 
-  // =====================
   // v03負け台詞（ランダム）
-  // =====================
   const TEQUILA_LINES = [
     "いきまーーっす！",
     "飲めよ国民！",
@@ -23,62 +25,52 @@ document.addEventListener("DOMContentLoaded", () => {
     "ザクとは違うのだよ",
     "見せてもらおうか"
   ];
-  function pickTequilaLine() {
-    return TEQUILA_LINES[Math.floor(Math.random() * TEQUILA_LINES.length)];
-  }
+  const pickTequilaLine = () =>
+    TEQUILA_LINES[Math.floor(Math.random() * TEQUILA_LINES.length)];
 
   // =====================
-  // SE（iPhone安定：Audio Pool方式 / prime完了を待てる版）
+  // SE（iPhone安定：Audio Pool方式）
   // =====================
-  function makePool(src, size = 5, volume = 1.0) {
+  function makePool(src, size = 4, volume = 1.0) {
     const pool = Array.from({ length: size }, () => {
       const a = new Audio(src);
       a.preload = "auto";
       a.volume = volume;
-      // 可能なら先読み促進
       try { a.load(); } catch {}
       return a;
     });
     let idx = 0;
 
-    // 無音で一瞬再生→停止（解錠＆デコード促進）を「完了待ち」できるようにする
-    function primeSilentlyAsync() {
-      return Promise.all(
-        pool.map(a => {
-          return new Promise(resolve => {
-            const v = a.volume;
-            a.volume = 0.0;
-            try { a.currentTime = 0; } catch {}
-            const p = a.play();
-            if (p && typeof p.then === "function") {
-              p.then(() => {
-                a.pause();
-                try { a.currentTime = 0; } catch {}
-                a.volume = v;
-                resolve();
-              }).catch(() => {
-                a.volume = v;
-                resolve();
-              });
-            } else {
-              // play()がPromise返さないブラウザ対策
-              try {
-                a.pause();
-                try { a.currentTime = 0; } catch {}
-              } catch {}
-              a.volume = v;
-              resolve();
-            }
-          });
-        })
-      );
+    // ★primeは「1個だけ」＆ muted で確実に無音
+    async function primeOneSilently() {
+      const a = pool[0];
+      const prevMuted = a.muted;
+      const prevVol = a.volume;
+
+      a.muted = true;      // ←音量0より確実
+      a.volume = 1.0;      // mutedなら音出ないのでOK
+      try { a.currentTime = 0; } catch {}
+
+      try {
+        const p = a.play();
+        if (p && typeof p.then === "function") await p;
+      } catch {}
+
+      try { a.pause(); } catch {}
+      try { a.currentTime = 0; } catch {}
+
+      a.muted = prevMuted;
+      a.volume = prevVol;
     }
 
     function playNow() {
       const a = pool[idx];
       idx = (idx + 1) % pool.length;
 
+      // 同じインスタンスが再生中でも止めて先頭から
+      try { a.pause(); } catch {}
       try { a.currentTime = 0; } catch {}
+
       const p = a.play();
       if (p && typeof p.catch === "function") p.catch(() => {});
     }
@@ -87,18 +79,18 @@ document.addEventListener("DOMContentLoaded", () => {
       pool.forEach(a => (a.volume = v));
     }
 
-    return { primeSilentlyAsync, playNow, setVolume };
+    return { primeOneSilently, playNow, setVolume };
   }
 
   const SFX = {
-    beep: makePool("sound/beep.wav", 6, 1.0),    // 3,2,1
-    beep2: makePool("sound/beep2.wav", 4, 1.0),  // 0
-    go: makePool("sound/go.wav", 4, 1.0),
+    beep: makePool("sound/beep.wav", 5, 1.0),    // 3,2,1
+    beep2: makePool("sound/beep2.wav", 3, 1.0),  // 0
+    go: makePool("sound/go.wav", 3, 1.0),
   };
 
   let soundEnabled = true;
   let audioUnlocked = false;
-  let unlockPromise = null; // ★ 解錠の完了待ち用
+  let unlockPromise = null;
 
   // ローカル保存（任意）
   try {
@@ -106,20 +98,20 @@ document.addEventListener("DOMContentLoaded", () => {
     if (saved !== null) soundEnabled = saved === "1";
   } catch {}
 
-  // ★ 解錠を「一度だけ」「完了まで待てる」Promiseにする
+  // ★解錠（prime完了まで待つ）
   function unlockAudioAsync() {
     if (audioUnlocked) return Promise.resolve();
     if (unlockPromise) return unlockPromise;
 
     unlockPromise = (async () => {
-      // ここは必ず「ユーザー操作（pointerdown）」から呼ぶこと
-      await SFX.beep.primeSilentlyAsync();  // go を鳴らす必要なし
-      await SFX.beep2.primeSilentlyAsync();
-      await SFX.go.primeSilentlyAsync();
+      // 各SFXにつき「1回だけ」prime（これでピコピコをほぼ根絶）
+      await SFX.beep.primeOneSilently();
+      await SFX.beep2.primeOneSilently();
+      await SFX.go.primeOneSilently();
 
       audioUnlocked = true;
     })().catch(() => {
-      // 失敗しても以降の動作は継続
+      // 失敗しても継続
       audioUnlocked = true;
     });
 
@@ -129,7 +121,6 @@ document.addEventListener("DOMContentLoaded", () => {
   function playSfx(key) {
     if (!soundEnabled) return;
     if (!audioUnlocked) return;
-
     const s = SFX[key];
     if (!s) return;
     s.playNow();
@@ -187,10 +178,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
   let destroySafeOpened = 0;
 
-  // カウントダウン制御
+  // 二重起動防止＆タイマー管理
   let countdownRunning = false;
   let countdownTimerIds = [];
-  function clearCountdownTimers() {
+  function clearTimers() {
     countdownTimerIds.forEach(id => clearTimeout(id));
     countdownTimerIds = [];
   }
@@ -202,7 +193,7 @@ document.addEventListener("DOMContentLoaded", () => {
     easy: 3,
     normal: 6,
     hard: 6,
-    destroy: 0 // NT-Dは別ルール
+    destroy: 0
   };
 
   function applyBoardLayout() {
@@ -233,15 +224,15 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // =====================
-  // カウントダウン（最安定：予約時刻方式）
-  // - 3,2,1 は beep
-  // - 0 は beep2
+  // カウントダウン（基準時刻方式：drift補正）
+  // - 3,2,1: beep
+  // - 0: beep2
   // =====================
   function startCountdown() {
     if (countdownRunning) return;
     countdownRunning = true;
 
-    clearCountdownTimers();
+    clearTimers();
 
     setScreen("game");
     board.innerHTML = "";
@@ -258,26 +249,41 @@ document.addEventListener("DOMContentLoaded", () => {
     countdownEl.classList.remove("hidden");
 
     const steps = [3, 2, 1, 0];
-    steps.forEach((num, i) => {
-      const id = setTimeout(() => {
-        if (!countdownRunning) return;
+    const startAt = performance.now();  // ★基準
+    let i = 0;
 
-        countdownEl.textContent = String(num);
-
-        if (num === 0) playSfx("beep2");
-        else playSfx("beep");
-      }, i * 1000);
-
-      countdownTimerIds.push(id);
-    });
-
-    // 0表示の後、少し待って開始
-    countdownTimerIds.push(setTimeout(() => {
+    const tick = () => {
       if (!countdownRunning) return;
-      countdownEl.classList.add("hidden");
-      countdownRunning = false;
-      startGame();
-    }, 3500));
+
+      const num = steps[i];
+      countdownEl.textContent = String(num);
+      if (num === 0) playSfx("beep2");
+      else playSfx("beep");
+
+      i++;
+
+      if (i >= steps.length) {
+        // 0を少し見せてから開始
+        const endId = setTimeout(() => {
+          if (!countdownRunning) return;
+          countdownEl.classList.add("hidden");
+          countdownRunning = false;
+          startGame();
+        }, 300);
+        countdownTimerIds.push(endId);
+        return;
+      }
+
+      // ★次の「あるべき時刻」に合わせて遅れを補正
+      const target = startAt + i * 1000;
+      const delay = Math.max(0, target - performance.now());
+
+      const id = setTimeout(tick, delay);
+      countdownTimerIds.push(id);
+    };
+
+    // 即時スタート（最初の3をその場で）
+    tick();
   }
 
   // =====================
@@ -295,7 +301,6 @@ document.addEventListener("DOMContentLoaded", () => {
     const total = modeSetting[mode];
     const names = [];
 
-    // v02～（例: easy=3 => v02,v03,v04）
     for (let i = 2; i < 2 + total; i++) {
       names.push("v" + i.toString().padStart(2, "0"));
     }
@@ -386,7 +391,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         if (name === "v03") {
           lock = true;
-          playSfx("go"); // ★めくった瞬間
+          playSfx("go"); // めくった瞬間
           setTimeout(() => showTequilaLose(false), 60);
           return;
         }
@@ -461,7 +466,7 @@ document.addEventListener("DOMContentLoaded", () => {
     img.style.objectFit = "contain";
 
     const text = document.createElement("div");
-    text.textContent = pickTequilaLine(); // ★ランダム表示
+    text.textContent = pickTequilaLine();
     text.style.color = "#fff";
     text.style.fontSize = "clamp(22px, 6vw, 58px)";
     text.style.fontWeight = "800";
@@ -575,23 +580,20 @@ document.addEventListener("DOMContentLoaded", () => {
   // =====================
   // ボタン類
   // =====================
-
-  // モードボタン（EASY/NORMAL/HARD/NT-D）
   document.querySelectorAll(".modeBtn").forEach(btn => {
     btn.addEventListener("pointerdown", async (e) => {
       e.preventDefault();
 
-      // ★ まず解錠を完了まで待つ（ここが今回の肝）
-      await unlockAudioAsync();
+      await unlockAudioAsync(); // ★prime完了まで待つ
 
       const selected = btn.dataset.mode;
       mode = selected || "easy";
 
-      // 進行中カウントダウンがあれば止める
-      clearCountdownTimers();
+      // 進行中のカウントダウン停止（連打・戻る対策）
+      clearTimers();
       countdownRunning = false;
 
-      // 連打対策：演出リセット
+      // 演出リセット
       const destroyBtn = document.querySelector('.modeBtn[data-mode="destroy"]');
       destroyBtn?.classList.remove("charging");
       screens.start?.classList.remove("flicker");
@@ -604,8 +606,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
       // ===== NT-D演出 =====
       setStartNeon(true);
-
-      // 3秒でピンク化（CSS .charging）
       requestAnimationFrame(() => destroyBtn?.classList.add("charging"));
 
       // 3秒後チカチカ
@@ -622,14 +622,12 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
-  // 左下：ショット（go音）
   shotBtn?.addEventListener("pointerdown", async (e) => {
     e.preventDefault();
     await unlockAudioAsync();
     playSfx("go");
   });
 
-  // 下中央：ヘルプ
   helpBtn?.addEventListener("pointerdown", async (e) => {
     e.preventDefault();
     await unlockAudioAsync();
@@ -642,7 +640,6 @@ document.addEventListener("DOMContentLoaded", () => {
     setScreen("start");
   });
 
-  // 右下：サウンドON/OFF
   soundBtn?.addEventListener("pointerdown", async (e) => {
     e.preventDefault();
     await unlockAudioAsync();
@@ -670,5 +667,3 @@ document.addEventListener("DOMContentLoaded", () => {
   setStartNeon(false);
   setScreen("start");
 });
-
-
