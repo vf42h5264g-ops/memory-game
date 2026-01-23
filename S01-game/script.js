@@ -285,7 +285,7 @@ document.addEventListener("DOMContentLoaded", () => {
   // ボタンイベント
   // =====================
   document.querySelectorAll(".modeBtn").forEach(btn => {
-    btn.addEventListener("pointerdown", async (e) => {
+    btn.addEventListener("pointerdown", (e) => {
       e.preventDefault();
       await ensureAudioUnlocked();
 
