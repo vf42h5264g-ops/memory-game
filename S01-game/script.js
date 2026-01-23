@@ -287,7 +287,7 @@ document.addEventListener("DOMContentLoaded", () => {
   document.querySelectorAll(".modeBtn").forEach(btn => {
     btn.addEventListener("pointerdown", (e) => {
       e.preventDefault();
-      await ensureAudioUnlocked();
+      ensureAudioUnlocked();
 
       const selected = btn.dataset.mode;
       mode = selected || "easy";
