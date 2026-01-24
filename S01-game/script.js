@@ -2,11 +2,13 @@
 // Quattro Vageena : Last Call
 // Complete JS / iPhone安定版（WebAudio優先 + 失敗時HTMLAudioフォールバック）
 //
-// ✅ 音が鳴らない対策：WebAudioが失敗したらHTMLAudioで鳴らす
+// ✅ PayPay投げ銭（donateBtn）追加：QR(paypay.jpg) + URL
+// ✅ 支援ボタンが裏に出る/二重になる対策：重複donateBtn削除
+// ✅ 音が鳴らない対策：WebAudio失敗→HTMLAudio
 // ✅ カウントと音ズレ対策：基準時刻方式（performance.now補正）
 // ✅ 0 は beep2.wav
-// ✅ NT-D v03負け：ランダム台詞のみ（固定「GOテキーラ」撤去）
-// ✅ PayPay投げ銭：paypay.jpg + URL + 感謝メッセージ
+// ✅ NT-D v03負け：ランダム台詞のみ（固定撤去）
+// ✅ クリア画面でモード名表示
 // ==============================
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -20,20 +22,9 @@ document.addEventListener("DOMContentLoaded", () => {
   // =====================
   const BACK_SRC = "img/vback.jpg";
 
-  // =====================
-  // PayPay 投げ銭設定
-  // =====================
-  const TIP = {
-    url: "https://qr.paypay.ne.jp/p2p01_UmHN8gFjP5JmQwzo",
-    img: "img/paypay.jpg", // ★あなたの指定：paypay.jpg
-    title: "投げ銭（PayPay）",
-    message: [
-      "もしこのゲームを楽しんでいただけたら、",
-      "ささやかなご支援で応援していただけると嬉しいです。",
-      "いただいたご支援は、今後の改善や制作の励みになります。",
-      "本当にありがとうございます。"
-    ].join("<br>")
-  };
+  // PayPay（投げ銭）
+  const PAYPAY_URL = "https://qr.paypay.ne.jp/p2p01_UmHN8gFjP5JmQwzo";
+  const PAYPAY_IMG = "img/paypay.jpg"; // 画像ファイル名は paypay.jpg（imgフォルダ想定）
 
   // =====================
   // 画面管理
@@ -62,10 +53,19 @@ document.addEventListener("DOMContentLoaded", () => {
   const missArea = document.getElementById("missArea");
   const resultText = document.getElementById("resultText");
   const timeText = document.getElementById("timeText");
+  const resultMode = document.getElementById("resultMode"); // 追加済み想定
 
   const shotBtn = document.getElementById("shotBtn");
   const helpBtn = document.getElementById("helpBtn");
   const soundBtn = document.getElementById("soundBtn");
+
+  // donateBtn 重複対策（裏に隠れてる/二重になるやつを削除）
+  const donateBtns = document.querySelectorAll("#donateBtn");
+  if (donateBtns.length > 1) {
+    donateBtns.forEach((b, i) => { if (i !== 0) b.remove(); });
+  }
+  const donateBtn = document.getElementById("donateBtn");
+
   const backFromHelpBtn = document.getElementById("backFromHelp");
   const backBtn = document.getElementById("backBtn");
   const retryBtn = document.getElementById("retryBtn");
@@ -74,13 +74,6 @@ document.addEventListener("DOMContentLoaded", () => {
     alert("HTMLのIDが合ってない可能性があります。\nboard / countdown / missArea / resultText / timeText を確認してね。");
     return;
   }
-
-  const MODE_LABEL = {
-  easy: "EASY MODE",
-  normal: "NORMAL MODE",
-  hard: "HARD MODE",
-  destroy: "NT-D MODE"
-};
 
   // =====================
   // 状態
@@ -92,10 +85,13 @@ document.addEventListener("DOMContentLoaded", () => {
   let startTime = 0;
   let destroySafeOpened = 0;
 
-  // 二重起動防止
+  // 二重起動防止（カウントダウン）
   let countdownRunning = false;
   let countdownRAF = 0;
   let countdownFinishTimeout = 0;
+
+  // NT-D演出タイマー（スタート画面）
+  let ntdTimers = [];
 
   function cancelCountdown() {
     if (countdownRAF) cancelAnimationFrame(countdownRAF);
@@ -103,6 +99,11 @@ document.addEventListener("DOMContentLoaded", () => {
     if (countdownFinishTimeout) clearTimeout(countdownFinishTimeout);
     countdownFinishTimeout = 0;
     countdownRunning = false;
+  }
+
+  function clearNtdTimers() {
+    ntdTimers.forEach(t => clearTimeout(t));
+    ntdTimers = [];
   }
 
   // =====================
@@ -113,6 +114,13 @@ document.addEventListener("DOMContentLoaded", () => {
     normal: 6,
     hard: 6,
     destroy: 0
+  };
+
+  const modeLabel = {
+    easy: "EASY",
+    normal: "NORMAL",
+    hard: "HARD",
+    destroy: "NT-D"
   };
 
   function applyBoardLayout() {
@@ -146,7 +154,6 @@ document.addEventListener("DOMContentLoaded", () => {
     "ザクとは違うのだよ",
     "見せてもらおうか"
   ];
-
   function pickTequilaLine() {
     return tequilaLines[Math.floor(Math.random() * tequilaLines.length)];
   }
@@ -175,6 +182,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!soundEnabled) return;
     const base = htmlAudio[key];
     if (!base) return;
+
     const a = base.cloneNode();
     a.volume = base.volume;
     try { a.currentTime = 0; } catch {}
@@ -203,11 +211,9 @@ document.addEventListener("DOMContentLoaded", () => {
     audioUnlocking = true;
     try {
       audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+      if (audioCtx.state === "suspended") await audioCtx.resume();
 
-      if (audioCtx.state === "suspended") {
-        await audioCtx.resume();
-      }
-
+      // 初回デコード
       if (!audioReady) {
         for (const [key, url] of Object.entries(SOUND_FILES)) {
           const ab = await fetchArrayBuffer(url);
@@ -237,6 +243,7 @@ document.addEventListener("DOMContentLoaded", () => {
       useWebAudio = true;
       return true;
     } catch (e) {
+      // フォールバック
       console.log("WebAudio disabled -> fallback to HTMLAudio", e);
       useWebAudio = false;
       audioUnlocked = true;
@@ -249,6 +256,7 @@ document.addEventListener("DOMContentLoaded", () => {
   function playWeb(key, whenSec = null) {
     if (!soundEnabled) return;
     if (!useWebAudio || !audioCtx || !audioReady) return;
+
     const buf = buffers[key];
     if (!buf) return;
 
@@ -299,121 +307,125 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // =====================
-  // PayPay 投げ銭 UI（JSで自動生成）
+  // 投げ銭モーダル
   // =====================
-  function ensureTipButton() {
-    if (!screens.start) return;
-
-    // すでにあれば作らない
-    if (document.getElementById("tipBtn")) return;
-
-    const tipBtn = document.createElement("div");
-    tipBtn.id = "tipBtn";
-    tipBtn.textContent = "🫶";
-    tipBtn.setAttribute("role", "button");
-    tipBtn.setAttribute("aria-label", "投げ銭（PayPay）");
-
-    // 既存アイコンと同系統
-    tipBtn.style.width = "52px";
-    tipBtn.style.height = "52px";
-    tipBtn.style.display = "grid";
-    tipBtn.style.placeItems = "center";
-    tipBtn.style.fontSize = "24px";
-    tipBtn.style.borderRadius = "999px";
-    tipBtn.style.background = "rgba(255,255,255,0.10)";
-    tipBtn.style.border = "1px solid rgba(255,255,255,0.12)";
-    tipBtn.style.cursor = "pointer";
-    tipBtn.style.userSelect = "none";
-    tipBtn.style.boxShadow = "0 10px 24px rgba(0,0,0,0.35)";
-    tipBtn.style.position = "absolute";
-    tipBtn.style.right = "76px"; // ★右下サウンドボタンの左隣（バランス用）
-    tipBtn.style.bottom = "14px";
-    tipBtn.style.touchAction = "manipulation";
-
-    tipBtn.addEventListener("pointerdown", async (e) => {
-      e.preventDefault();
-      await ensureAudioUnlocked();
-      showTipOverlay();
-    }, { passive: false });
-
-    screens.start.appendChild(tipBtn);
-  }
-
-  function showTipOverlay() {
-    const old = document.getElementById("tipOverlay");
+  function showThanksToast() {
+    const old = document.getElementById("thanksToast");
     if (old) old.remove();
 
+    const toast = document.createElement("div");
+    toast.id = "thanksToast";
+    toast.textContent = "ご支援ありがとうございます！制作の励みになります 🙏";
+    toast.style.position = "fixed";
+    toast.style.left = "50%";
+    toast.style.transform = "translateX(-50%)";
+    toast.style.bottom = "calc(env(safe-area-inset-bottom, 0px) + 110px)";
+    toast.style.zIndex = "99999";
+    toast.style.padding = "10px 14px";
+    toast.style.borderRadius = "999px";
+    toast.style.background = "rgba(0,0,0,0.72)";
+    toast.style.border = "1px solid rgba(255,255,255,0.16)";
+    toast.style.color = "#fff";
+    toast.style.fontWeight = "800";
+    toast.style.letterSpacing = "0.04em";
+    toast.style.fontSize = "14px";
+    toast.style.boxShadow = "0 18px 44px rgba(0,0,0,0.45)";
+    toast.style.pointerEvents = "none";
+
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 2200);
+  }
+
+  function openDonateModal() {
+    document.getElementById("donateOverlay")?.remove();
+
     const overlay = document.createElement("div");
-    overlay.id = "tipOverlay";
+    overlay.id = "donateOverlay";
     overlay.style.position = "fixed";
     overlay.style.inset = "0";
-    overlay.style.zIndex = "100000";
-    overlay.style.background = "rgba(0,0,0,0.92)";
+    overlay.style.zIndex = "99999";
+    overlay.style.background = "rgba(0,0,0,0.78)";
     overlay.style.display = "flex";
-    overlay.style.flexDirection = "column";
     overlay.style.alignItems = "center";
     overlay.style.justifyContent = "center";
-    overlay.style.gap = "14px";
     overlay.style.padding = "18px";
-    overlay.style.textAlign = "center";
+
+    overlay.addEventListener("pointerdown", (e) => {
+      if (e.target === overlay) overlay.remove();
+    }, { passive: false });
+
+    const card = document.createElement("div");
+    card.style.width = "min(92vw, 420px)";
+    card.style.borderRadius = "18px";
+    card.style.background = "rgba(20,10,12,0.95)";
+    card.style.border = "1px solid rgba(255,255,255,0.12)";
+    card.style.boxShadow = "0 24px 60px rgba(0,0,0,0.55)";
+    card.style.padding = "16px";
+    card.style.display = "flex";
+    card.style.flexDirection = "column";
+    card.style.gap = "12px";
 
     const title = document.createElement("div");
-    title.textContent = TIP.title;
-    title.style.color = "#fff";
-    title.style.fontSize = "18px";
+    title.textContent = "ご支援（PayPay）";
     title.style.fontWeight = "900";
-    title.style.letterSpacing = "0.04em";
+    title.style.letterSpacing = "0.06em";
+    title.style.fontSize = "18px";
+    title.style.color = "#fff";
 
     const msg = document.createElement("div");
-    msg.innerHTML = TIP.message;
-    msg.style.color = "rgba(255,255,255,0.92)";
+    msg.textContent =
+      "遊んでくれてありがとうございます！よければPayPayで応援していただけると、とても励みになります。";
+    msg.style.opacity = "0.9";
+    msg.style.lineHeight = "1.5";
     msg.style.fontSize = "14px";
-    msg.style.lineHeight = "1.8";
-    msg.style.maxWidth = "420px";
+    msg.style.color = "#fff";
 
     const img = document.createElement("img");
-    img.src = TIP.img;
+    img.src = PAYPAY_IMG;
     img.alt = "PayPay QR";
-    img.style.width = "min(320px, 78vw)";
-    img.style.borderRadius = "14px";
-    img.style.border = "1px solid rgba(255,255,255,0.18)";
-    img.style.boxShadow = "0 18px 38px rgba(0,0,0,0.55)";
+    img.style.width = "100%";
+    img.style.borderRadius = "12px";
+    img.style.border = "1px solid rgba(255,255,255,0.10)";
+    img.style.background = "#fff";
 
-    const openBtn = document.createElement("a");
-    openBtn.href = TIP.url;
-    openBtn.target = "_blank";
-    openBtn.rel = "noopener";
-    openBtn.textContent = "PayPayで開く";
-    openBtn.style.display = "inline-block";
-    openBtn.style.padding = "12px 18px";
-    openBtn.style.borderRadius = "14px";
-    openBtn.style.textDecoration = "none";
-    openBtn.style.fontWeight = "800";
-    openBtn.style.color = "#111";
-    openBtn.style.background = "#fff";
+    const row = document.createElement("div");
+    row.style.display = "flex";
+    row.style.gap = "10px";
+
+    const openBtn = document.createElement("button");
+    openBtn.textContent = "PayPayを開く";
+    openBtn.style.flex = "1";
+    openBtn.style.padding = "12px 14px";
+    openBtn.style.borderRadius = "12px";
+    openBtn.style.border = "none";
     openBtn.style.cursor = "pointer";
+    openBtn.style.fontWeight = "800";
 
-    // 支援後導線（検知できないのでユーザー操作）
-    const doneBtn = document.createElement("button");
-    doneBtn.textContent = "支援が終わった方はこちら";
-    doneBtn.style.padding = "10px 16px";
-    doneBtn.style.fontSize = "14px";
-    doneBtn.style.borderRadius = "12px";
-    doneBtn.style.border = "1px solid rgba(255,255,255,0.18)";
-    doneBtn.style.background = "rgba(255,255,255,0.10)";
-    doneBtn.style.color = "#fff";
-    doneBtn.style.cursor = "pointer";
+    openBtn.addEventListener("pointerdown", (e) => {
+      e.preventDefault();
+      window.open(PAYPAY_URL, "_blank", "noopener");
+    }, { passive: false });
 
-    doneBtn.addEventListener("pointerdown", (e) => {
+    const thanksBtn = document.createElement("button");
+    thanksBtn.textContent = "送ったよ";
+    thanksBtn.style.flex = "1";
+    thanksBtn.style.padding = "12px 14px";
+    thanksBtn.style.borderRadius = "12px";
+    thanksBtn.style.border = "1px solid rgba(255,255,255,0.16)";
+    thanksBtn.style.background = "rgba(255,255,255,0.06)";
+    thanksBtn.style.color = "#fff";
+    thanksBtn.style.cursor = "pointer";
+    thanksBtn.style.fontWeight = "800";
+
+    thanksBtn.addEventListener("pointerdown", (e) => {
       e.preventDefault();
       overlay.remove();
-      showThanksMessage();
+      showThanksToast();
     }, { passive: false });
 
     const closeBtn = document.createElement("button");
     closeBtn.textContent = "閉じる";
-    closeBtn.style.padding = "10px 16px";
-    closeBtn.style.fontSize = "14px";
+    closeBtn.style.padding = "10px 12px";
     closeBtn.style.borderRadius = "12px";
     closeBtn.style.border = "none";
     closeBtn.style.cursor = "pointer";
@@ -423,66 +435,16 @@ document.addEventListener("DOMContentLoaded", () => {
       overlay.remove();
     }, { passive: false });
 
-    overlay.appendChild(title);
-    overlay.appendChild(msg);
-    overlay.appendChild(img);
-    overlay.appendChild(openBtn);
-    overlay.appendChild(doneBtn);
-    overlay.appendChild(closeBtn);
+    row.appendChild(openBtn);
+    row.appendChild(thanksBtn);
 
-    document.body.appendChild(overlay);
-  }
+    card.appendChild(title);
+    card.appendChild(msg);
+    card.appendChild(img);
+    card.appendChild(row);
+    card.appendChild(closeBtn);
 
-  function showThanksMessage() {
-    const old = document.getElementById("thanksOverlay");
-    if (old) old.remove();
-
-    const overlay = document.createElement("div");
-    overlay.id = "thanksOverlay";
-    overlay.style.position = "fixed";
-    overlay.style.inset = "0";
-    overlay.style.zIndex = "100000";
-    overlay.style.background = "rgba(0,0,0,0.92)";
-    overlay.style.display = "flex";
-    overlay.style.flexDirection = "column";
-    overlay.style.alignItems = "center";
-    overlay.style.justifyContent = "center";
-    overlay.style.padding = "24px";
-    overlay.style.textAlign = "center";
-    overlay.style.gap = "18px";
-
-    const title = document.createElement("div");
-    title.textContent = "ありがとうございます！";
-    title.style.color = "#fff";
-    title.style.fontSize = "18px";
-    title.style.fontWeight = "900";
-    title.style.letterSpacing = "0.04em";
-
-    const text = document.createElement("div");
-    text.innerHTML = `
-      <div style="line-height:1.9; color:rgba(255,255,255,0.92); font-size:14px;">
-        ご支援ありがとうございます。<br>
-        楽しんでいただけたことが何よりの励みです。<br><br>
-        これからも、気軽に遊んでいただけたら嬉しいです。
-      </div>
-    `;
-
-    const closeBtn = document.createElement("button");
-    closeBtn.textContent = "スタート画面に戻る";
-    closeBtn.style.padding = "12px 18px";
-    closeBtn.style.fontSize = "14px";
-    closeBtn.style.borderRadius = "12px";
-    closeBtn.style.border = "none";
-    closeBtn.style.cursor = "pointer";
-
-    closeBtn.addEventListener("pointerdown", (e) => {
-      e.preventDefault();
-      overlay.remove();
-    }, { passive: false });
-
-    overlay.appendChild(title);
-    overlay.appendChild(text);
-    overlay.appendChild(closeBtn);
+    overlay.appendChild(card);
     document.body.appendChild(overlay);
   }
 
@@ -497,10 +459,13 @@ document.addEventListener("DOMContentLoaded", () => {
       const selected = btn.dataset.mode;
       mode = selected || "easy";
 
+      // NT-D演出をリセット
+      clearNtdTimers();
       const destroyBtn = document.querySelector('.modeBtn[data-mode="destroy"]');
       destroyBtn?.classList.remove("charging");
       screens.start?.classList.remove("flicker");
 
+      // 進行中のカウントダウン停止
       cancelCountdown();
 
       if (mode !== "destroy") {
@@ -509,16 +474,16 @@ document.addEventListener("DOMContentLoaded", () => {
         return;
       }
 
-      // NT-D演出
+      // ===== NT-D演出 =====
       setStartNeon(true);
       requestAnimationFrame(() => destroyBtn?.classList.add("charging"));
 
-      setTimeout(() => screens.start?.classList.add("flicker"), 3000);
-      setTimeout(() => {
+      ntdTimers.push(setTimeout(() => screens.start?.classList.add("flicker"), 3000));
+      ntdTimers.push(setTimeout(() => {
         screens.start?.classList.remove("flicker");
         destroyBtn?.classList.remove("charging");
         startCountdown();
-      }, 4000);
+      }, 4000));
     }, { passive: false });
   });
 
@@ -548,6 +513,12 @@ document.addEventListener("DOMContentLoaded", () => {
     try { localStorage.setItem("soundEnabled", soundEnabled ? "1" : "0"); } catch {}
   }, { passive: false });
 
+  donateBtn?.addEventListener("pointerdown", (e) => {
+    e.preventDefault();
+    ensureAudioUnlocked();
+    openDonateModal();
+  }, { passive: false });
+
   backBtn?.addEventListener("pointerdown", (e) => {
     e.preventDefault();
     ensureAudioUnlocked();
@@ -568,6 +539,7 @@ document.addEventListener("DOMContentLoaded", () => {
   // =====================
   function startCountdown() {
     if (countdownRunning) return;
+
     cancelCountdown();
     countdownRunning = true;
 
@@ -587,9 +559,10 @@ document.addEventListener("DOMContentLoaded", () => {
     const t0Perf = performance.now();
     const seq = [3, 2, 1, 0];
 
+    // WebAudioが使えるなら“予約”してズレ最小化
     let audioBase = null;
     if (useWebAudio && audioCtx && audioReady) {
-      audioBase = audioCtx.currentTime + 0.06;
+      audioBase = audioCtx.currentTime + 0.08; // Safari余裕
       playSfx("beep",  audioBase + 0.0);
       playSfx("beep",  audioBase + 1.0);
       playSfx("beep",  audioBase + 2.0);
@@ -609,7 +582,8 @@ document.addEventListener("DOMContentLoaded", () => {
         countdownEl.textContent = String(show);
         lastShown = show;
 
-        if (!(audioBase != null)) {
+        // HTML fallback時のみここで鳴らす（Web予約があるなら鳴らさない）
+        if (audioBase == null) {
           if (show === 0) playSfx("beep2");
           else playSfx("beep");
         }
@@ -628,10 +602,10 @@ document.addEventListener("DOMContentLoaded", () => {
       countdownRAF = requestAnimationFrame(tick);
     };
 
+    // 初期表示
     countdownEl.textContent = "3";
     lastShown = 3;
-
-    if (!(audioBase != null)) playSfx("beep");
+    if (audioBase == null) playSfx("beep");
 
     countdownRAF = requestAnimationFrame(tick);
   }
@@ -741,7 +715,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         if (name === "v03") {
           lock = true;
-          playSfx("go");
+          playSfx("go"); // めくった瞬間
           setTimeout(() => showTequilaLose(false), 60);
           return;
         }
@@ -754,8 +728,9 @@ document.addEventListener("DOMContentLoaded", () => {
           setTimeout(() => {
             launchConfetti();
             const time = ((Date.now() - startTime) / 1000).toFixed(1);
-            resultText.textContent = "僕にはまだ帰れるところがあるんだ";
+            resultText.textContent = "SURVIVED!!";
             timeText.textContent = `TIME : ${time}s`;
+            if (resultMode) resultMode.textContent = `MODE : ${modeLabel[mode] || mode}`;
             setScreen("result");
           }, 250);
         }
@@ -775,10 +750,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const time = ((Date.now() - startTime) / 1000).toFixed(1);
       resultText.textContent = "PERFECT!!";
       timeText.textContent = `TIME : ${time}s`;
-
-      const modeEl = document.getElementById("resultMode");
-   　 modeEl.textContent = MODE_LABEL[mode] || "";
-   　 modeEl.classList.toggle("ntd", mode === "destroy");
+      if (resultMode) resultMode.textContent = `MODE : ${modeLabel[mode] || mode}`;
       setScreen("result");
     }
   }
@@ -787,6 +759,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (mode === "hard" && miss >= 5) {
       resultText.textContent = "BAD END…";
       timeText.textContent = "";
+      if (resultMode) resultMode.textContent = `MODE : ${modeLabel[mode] || mode}`;
       setScreen("result");
     }
   }
@@ -910,8 +883,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
       function animate(t) {
         const p = Math.min(1, (t - start) / life);
-        piece.style.transform =
-          `translate(${drift * p}px, ${fall * p}px) rotate(${rotate * p}deg)`;
+        piece.style.transform = `translate(${drift * p}px, ${fall * p}px) rotate(${rotate * p}deg)`;
         piece.style.opacity = (1 - p).toString();
         if (p < 1) requestAnimationFrame(animate);
         else piece.remove();
@@ -931,10 +903,10 @@ document.addEventListener("DOMContentLoaded", () => {
   // =====================
   // 初期画面
   // =====================
-  ensureTipButton();      // ★投げ銭ボタン自動追加
   setStartNeon(false);
   setScreen("start");
 });
+
 
 
 
