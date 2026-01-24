@@ -6,6 +6,7 @@
 // ✅ カウントと音ズレ対策：基準時刻方式（performance.now補正）
 // ✅ 0 は beep2.wav
 // ✅ NT-D v03負け：ランダム台詞のみ（固定「GOテキーラ」撤去）
+// ✅ PayPay投げ銭：paypay.jpg + URL + 感謝メッセージ
 // ==============================
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -18,6 +19,21 @@ document.addEventListener("DOMContentLoaded", () => {
   // 定数
   // =====================
   const BACK_SRC = "img/vback.jpg";
+
+  // =====================
+  // PayPay 投げ銭設定
+  // =====================
+  const TIP = {
+    url: "https://qr.paypay.ne.jp/p2p01_UmHN8gFjP5JmQwzo",
+    img: "img/paypay.jpg", // ★あなたの指定：paypay.jpg
+    title: "投げ銭（PayPay）",
+    message: [
+      "もしこのゲームを楽しんでいただけたら、",
+      "ささやかなご支援（投げ銭）で応援していただけると嬉しいです。",
+      "いただいたご支援は、今後の改善や制作の励みになります。",
+      "本当にありがとうございます。"
+    ].join("<br>")
+  };
 
   // =====================
   // 画面管理
@@ -137,7 +153,7 @@ document.addEventListener("DOMContentLoaded", () => {
     go: "sound/go.wav",
   };
 
-  // ---- HTMLAudio fallback（確実に鳴る保険）
+  // ---- HTMLAudio fallback
   const htmlAudio = {
     beep: new Audio(SOUND_FILES.beep),
     beep2: new Audio(SOUND_FILES.beep2),
@@ -152,13 +168,13 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!soundEnabled) return;
     const base = htmlAudio[key];
     if (!base) return;
-    const a = base.cloneNode(); // 同時再生対策
+    const a = base.cloneNode();
     a.volume = base.volume;
     try { a.currentTime = 0; } catch {}
     a.play().catch(() => {});
   }
 
-  // ---- WebAudio（成功したらこちらを使う）
+  // ---- WebAudio
   let audioCtx = null;
   let audioReady = false;
   let audioUnlocked = false;
@@ -179,14 +195,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
     audioUnlocking = true;
     try {
-      // AudioContext生成
       audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
 
       if (audioCtx.state === "suspended") {
         await audioCtx.resume();
       }
 
-      // デコード（初回だけ）
       if (!audioReady) {
         for (const [key, url] of Object.entries(SOUND_FILES)) {
           const ab = await fetchArrayBuffer(url);
@@ -201,7 +215,7 @@ document.addEventListener("DOMContentLoaded", () => {
         audioReady = true;
       }
 
-      // 無音で1回鳴らして完全解錠
+      // 無音で1回鳴らして解錠
       const g = audioCtx.createGain();
       g.gain.value = 0.0;
       g.connect(audioCtx.destination);
@@ -216,10 +230,9 @@ document.addEventListener("DOMContentLoaded", () => {
       useWebAudio = true;
       return true;
     } catch (e) {
-      // WebAudio失敗 → HTMLAudioにフォールバック
       console.log("WebAudio disabled -> fallback to HTMLAudio", e);
       useWebAudio = false;
-      audioUnlocked = true; // “ユーザー操作済み”扱い（HTMLAudioが鳴る）
+      audioUnlocked = true;
       return false;
     } finally {
       audioUnlocking = false;
@@ -248,17 +261,14 @@ document.addEventListener("DOMContentLoaded", () => {
     src.stop(t + Math.min(1.0, buf.duration + 0.05));
   }
 
-  // 外部から呼ぶ統一関数
   function playSfx(key, whenSec = null) {
     if (!soundEnabled) return;
 
-    // WebAudio成功してる時だけスケジューリング再生
     if (useWebAudio && whenSec != null) {
       playWeb(key, whenSec);
       return;
     }
 
-    // 通常は（WebAudio優先→ダメならHTML）
     if (useWebAudio) playWeb(key);
     else playHtml(key);
   }
@@ -279,6 +289,194 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
     missArea.textContent = "";
+  }
+
+  // =====================
+  // PayPay 投げ銭 UI（JSで自動生成）
+  // =====================
+  function ensureTipButton() {
+    if (!screens.start) return;
+
+    // すでにあれば作らない
+    if (document.getElementById("tipBtn")) return;
+
+    const tipBtn = document.createElement("div");
+    tipBtn.id = "tipBtn";
+    tipBtn.textContent = "🫶";
+    tipBtn.setAttribute("role", "button");
+    tipBtn.setAttribute("aria-label", "投げ銭（PayPay）");
+
+    // 既存アイコンと同系統
+    tipBtn.style.width = "52px";
+    tipBtn.style.height = "52px";
+    tipBtn.style.display = "grid";
+    tipBtn.style.placeItems = "center";
+    tipBtn.style.fontSize = "24px";
+    tipBtn.style.borderRadius = "999px";
+    tipBtn.style.background = "rgba(255,255,255,0.10)";
+    tipBtn.style.border = "1px solid rgba(255,255,255,0.12)";
+    tipBtn.style.cursor = "pointer";
+    tipBtn.style.userSelect = "none";
+    tipBtn.style.boxShadow = "0 10px 24px rgba(0,0,0,0.35)";
+    tipBtn.style.position = "absolute";
+    tipBtn.style.right = "76px"; // ★右下サウンドボタンの左隣（バランス用）
+    tipBtn.style.bottom = "14px";
+    tipBtn.style.touchAction = "manipulation";
+
+    tipBtn.addEventListener("pointerdown", async (e) => {
+      e.preventDefault();
+      await ensureAudioUnlocked();
+      showTipOverlay();
+    }, { passive: false });
+
+    screens.start.appendChild(tipBtn);
+  }
+
+  function showTipOverlay() {
+    const old = document.getElementById("tipOverlay");
+    if (old) old.remove();
+
+    const overlay = document.createElement("div");
+    overlay.id = "tipOverlay";
+    overlay.style.position = "fixed";
+    overlay.style.inset = "0";
+    overlay.style.zIndex = "100000";
+    overlay.style.background = "rgba(0,0,0,0.92)";
+    overlay.style.display = "flex";
+    overlay.style.flexDirection = "column";
+    overlay.style.alignItems = "center";
+    overlay.style.justifyContent = "center";
+    overlay.style.gap = "14px";
+    overlay.style.padding = "18px";
+    overlay.style.textAlign = "center";
+
+    const title = document.createElement("div");
+    title.textContent = TIP.title;
+    title.style.color = "#fff";
+    title.style.fontSize = "18px";
+    title.style.fontWeight = "900";
+    title.style.letterSpacing = "0.04em";
+
+    const msg = document.createElement("div");
+    msg.innerHTML = TIP.message;
+    msg.style.color = "rgba(255,255,255,0.92)";
+    msg.style.fontSize = "14px";
+    msg.style.lineHeight = "1.8";
+    msg.style.maxWidth = "420px";
+
+    const img = document.createElement("img");
+    img.src = TIP.img;
+    img.alt = "PayPay QR";
+    img.style.width = "min(320px, 78vw)";
+    img.style.borderRadius = "14px";
+    img.style.border = "1px solid rgba(255,255,255,0.18)";
+    img.style.boxShadow = "0 18px 38px rgba(0,0,0,0.55)";
+
+    const openBtn = document.createElement("a");
+    openBtn.href = TIP.url;
+    openBtn.target = "_blank";
+    openBtn.rel = "noopener";
+    openBtn.textContent = "PayPayで開く";
+    openBtn.style.display = "inline-block";
+    openBtn.style.padding = "12px 18px";
+    openBtn.style.borderRadius = "14px";
+    openBtn.style.textDecoration = "none";
+    openBtn.style.fontWeight = "800";
+    openBtn.style.color = "#111";
+    openBtn.style.background = "#fff";
+    openBtn.style.cursor = "pointer";
+
+    // 支援後導線（検知できないのでユーザー操作）
+    const doneBtn = document.createElement("button");
+    doneBtn.textContent = "支援が終わった方はこちら";
+    doneBtn.style.padding = "10px 16px";
+    doneBtn.style.fontSize = "14px";
+    doneBtn.style.borderRadius = "12px";
+    doneBtn.style.border = "1px solid rgba(255,255,255,0.18)";
+    doneBtn.style.background = "rgba(255,255,255,0.10)";
+    doneBtn.style.color = "#fff";
+    doneBtn.style.cursor = "pointer";
+
+    doneBtn.addEventListener("pointerdown", (e) => {
+      e.preventDefault();
+      overlay.remove();
+      showThanksMessage();
+    }, { passive: false });
+
+    const closeBtn = document.createElement("button");
+    closeBtn.textContent = "閉じる";
+    closeBtn.style.padding = "10px 16px";
+    closeBtn.style.fontSize = "14px";
+    closeBtn.style.borderRadius = "12px";
+    closeBtn.style.border = "none";
+    closeBtn.style.cursor = "pointer";
+
+    closeBtn.addEventListener("pointerdown", (e) => {
+      e.preventDefault();
+      overlay.remove();
+    }, { passive: false });
+
+    overlay.appendChild(title);
+    overlay.appendChild(msg);
+    overlay.appendChild(img);
+    overlay.appendChild(openBtn);
+    overlay.appendChild(doneBtn);
+    overlay.appendChild(closeBtn);
+
+    document.body.appendChild(overlay);
+  }
+
+  function showThanksMessage() {
+    const old = document.getElementById("thanksOverlay");
+    if (old) old.remove();
+
+    const overlay = document.createElement("div");
+    overlay.id = "thanksOverlay";
+    overlay.style.position = "fixed";
+    overlay.style.inset = "0";
+    overlay.style.zIndex = "100000";
+    overlay.style.background = "rgba(0,0,0,0.92)";
+    overlay.style.display = "flex";
+    overlay.style.flexDirection = "column";
+    overlay.style.alignItems = "center";
+    overlay.style.justifyContent = "center";
+    overlay.style.padding = "24px";
+    overlay.style.textAlign = "center";
+    overlay.style.gap = "18px";
+
+    const title = document.createElement("div");
+    title.textContent = "ありがとうございます！";
+    title.style.color = "#fff";
+    title.style.fontSize = "18px";
+    title.style.fontWeight = "900";
+    title.style.letterSpacing = "0.04em";
+
+    const text = document.createElement("div");
+    text.innerHTML = `
+      <div style="line-height:1.9; color:rgba(255,255,255,0.92); font-size:14px;">
+        ご支援ありがとうございます。<br>
+        楽しんでいただけたことが何よりの励みです。<br><br>
+        これからも、気軽に遊んでいただけたら嬉しいです。
+      </div>
+    `;
+
+    const closeBtn = document.createElement("button");
+    closeBtn.textContent = "スタート画面に戻る";
+    closeBtn.style.padding = "12px 18px";
+    closeBtn.style.fontSize = "14px";
+    closeBtn.style.borderRadius = "12px";
+    closeBtn.style.border = "none";
+    closeBtn.style.cursor = "pointer";
+
+    closeBtn.addEventListener("pointerdown", (e) => {
+      e.preventDefault();
+      overlay.remove();
+    }, { passive: false });
+
+    overlay.appendChild(title);
+    overlay.appendChild(text);
+    overlay.appendChild(closeBtn);
+    document.body.appendChild(overlay);
   }
 
   // =====================
@@ -317,25 +515,25 @@ document.addEventListener("DOMContentLoaded", () => {
     }, { passive: false });
   });
 
-  shotBtn?.addEventListener("pointerdown", async (e) => {
+  shotBtn?.addEventListener("pointerdown", (e) => {
     e.preventDefault();
     ensureAudioUnlocked();
     playSfx("go");
   }, { passive: false });
 
-  helpBtn?.addEventListener("pointerdown", async (e) => {
+  helpBtn?.addEventListener("pointerdown", (e) => {
     e.preventDefault();
     ensureAudioUnlocked();
     setScreen("help");
   }, { passive: false });
 
-  backFromHelpBtn?.addEventListener("pointerdown", async (e) => {
+  backFromHelpBtn?.addEventListener("pointerdown", (e) => {
     e.preventDefault();
     ensureAudioUnlocked();
     setScreen("start");
   }, { passive: false });
 
-  soundBtn?.addEventListener("pointerdown", async (e) => {
+  soundBtn?.addEventListener("pointerdown", (e) => {
     e.preventDefault();
     ensureAudioUnlocked();
     soundEnabled = !soundEnabled;
@@ -343,14 +541,14 @@ document.addEventListener("DOMContentLoaded", () => {
     try { localStorage.setItem("soundEnabled", soundEnabled ? "1" : "0"); } catch {}
   }, { passive: false });
 
-  backBtn?.addEventListener("pointerdown", async (e) => {
+  backBtn?.addEventListener("pointerdown", (e) => {
     e.preventDefault();
     ensureAudioUnlocked();
     setStartNeon(false);
     setScreen("start");
   }, { passive: false });
 
-  retryBtn?.addEventListener("pointerdown", async (e) => {
+  retryBtn?.addEventListener("pointerdown", (e) => {
     e.preventDefault();
     ensureAudioUnlocked();
     cancelCountdown();
@@ -363,8 +561,6 @@ document.addEventListener("DOMContentLoaded", () => {
   // =====================
   function startCountdown() {
     if (countdownRunning) return;
-    countdownRunning = true;
-
     cancelCountdown();
     countdownRunning = true;
 
@@ -384,17 +580,15 @@ document.addEventListener("DOMContentLoaded", () => {
     const t0Perf = performance.now();
     const seq = [3, 2, 1, 0];
 
-    // WebAudioが使えるなら“予約”してズレ最小化
     let audioBase = null;
     if (useWebAudio && audioCtx && audioReady) {
-      audioBase = audioCtx.currentTime + 0.06; // Safariのため少し余裕
+      audioBase = audioCtx.currentTime + 0.06;
       playSfx("beep",  audioBase + 0.0);
       playSfx("beep",  audioBase + 1.0);
       playSfx("beep",  audioBase + 2.0);
       playSfx("beep2", audioBase + 3.0);
     }
 
-    // HTMLAudioの場合は表示が切り替わった瞬間に鳴らす（予約は不安定なので）
     let lastShown = null;
 
     const tick = () => {
@@ -408,7 +602,6 @@ document.addEventListener("DOMContentLoaded", () => {
         countdownEl.textContent = String(show);
         lastShown = show;
 
-        // WebAudio予約が無い（=HTML fallback）のときだけここで鳴らす
         if (!(audioBase != null)) {
           if (show === 0) playSfx("beep2");
           else playSfx("beep");
@@ -428,11 +621,9 @@ document.addEventListener("DOMContentLoaded", () => {
       countdownRAF = requestAnimationFrame(tick);
     };
 
-    // 初期表示
     countdownEl.textContent = "3";
     lastShown = 3;
 
-    // HTML fallbackなら最初も鳴らす（Web予約があるなら鳴らさない）
     if (!(audioBase != null)) playSfx("beep");
 
     countdownRAF = requestAnimationFrame(tick);
@@ -543,7 +734,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         if (name === "v03") {
           lock = true;
-          playSfx("go"); // めくった瞬間
+          playSfx("go");
           setTimeout(() => showTequilaLose(false), 60);
           return;
         }
@@ -617,7 +808,6 @@ document.addEventListener("DOMContentLoaded", () => {
     img.style.height = "70vh";
     img.style.objectFit = "contain";
 
-    // ✅ ランダム台詞のみ（固定テキストは出さない）
     const line = document.createElement("div");
     line.textContent = pickTequilaLine();
     line.style.color = "#ff3bd4";
@@ -730,8 +920,10 @@ document.addEventListener("DOMContentLoaded", () => {
   // =====================
   // 初期画面
   // =====================
+  ensureTipButton();      // ★投げ銭ボタン自動追加
   setStartNeon(false);
   setScreen("start");
 });
+
 
 
