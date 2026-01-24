@@ -775,6 +775,10 @@ document.addEventListener("DOMContentLoaded", () => {
       const time = ((Date.now() - startTime) / 1000).toFixed(1);
       resultText.textContent = "PERFECT!!";
       timeText.textContent = `TIME : ${time}s`;
+
+      const modeEl = document.getElementById("resultMode");
+   　 modeEl.textContent = MODE_LABEL[mode] || "";
+   　 modeEl.classList.toggle("ntd", mode === "destroy");
       setScreen("result");
     }
   }
