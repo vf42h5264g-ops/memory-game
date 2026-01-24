@@ -20,14 +20,34 @@
     <div class="modeBtn" data-mode="destroy">NT-D</div>
   </div>
 
-  <!-- 左下：ショット（タップで go.wav） -->
-  <div id="shotBtn" aria-label="shot" title="SHOT">🥃</div>
+  <!-- Start screen bottom bar -->
+<div class="bottomBar">
+  <div id="shotBtn" class="circleBtn" aria-label="Shot">🥃</div>
+  <div id="helpBtn" class="circleBtn" aria-label="Help">❓</div>
+  <div id="tipBtn" class="circleBtn" aria-label="Tip">💗</div>
+  <div id="soundBtn" class="circleBtn" aria-label="Sound">🔊</div>
+</div>
 
-  <!-- 下中央：ヘルプ -->
-  <div id="helpBtn" aria-label="help" title="HELP">❓</div>
+<!-- Tip modal -->
+<div id="tipModal" class="modal hidden">
+  <div class="modalCard">
+    <h3>応援（投げ銭）</h3>
+    <p class="tipText">
+      もし気に入っていただけたら、応援してもらえるととても励みになります。<br>
+      いつも遊んでくれてありがとうございます！
+    </p>
 
-  <!-- 右下：サウンドON/OFF -->
-  <div id="soundBtn" aria-label="sound" title="SOUND">🔊</div>
+    <!-- どちらかでOK：QR画像 or リンク -->
+    <img id="paypayQr" src="img/paypay_tip_qr.png" alt="PayPay QR" class="qr">
+
+    <a id="paypayLink" class="paypayLink" href="#" target="_blank" rel="noopener">
+      PayPayで応援する
+    </a>
+
+    <button id="closeTipBtn">閉じる</button>
+  </div>
+</div>
+
 
   <div class="footerText">One last game before closing.</div>
 </div>
