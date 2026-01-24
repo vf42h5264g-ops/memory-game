@@ -306,3 +306,55 @@ button:active{
 }
 
 #startScreen { position: relative; }
+
+/* =========================
+   フッターボタン（下段）
+========================= */
+
+.footerBtns {
+  position: fixed;
+  bottom: 18px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(92vw, 420px);
+
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  padding: 10px 14px;
+  border-radius: 22px;
+
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(6px);
+  z-index: 20;
+}
+
+.footerBtns button {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+
+  font-size: 26px;
+  border: none;
+  cursor: pointer;
+
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  transition: transform 0.12s ease, background 0.12s ease;
+}
+
+.footerBtns button:active {
+  transform: scale(0.92);
+  background: rgba(255, 255, 255, 0.18);
+}
+
+/* 投げ銭ボタンだけ少し特別感 */
+#donateBtn {
+  background: rgba(255, 215, 100, 0.18);
+}
