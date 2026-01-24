@@ -75,6 +75,13 @@ document.addEventListener("DOMContentLoaded", () => {
     return;
   }
 
+  const MODE_LABEL = {
+  easy: "EASY MODE",
+  normal: "NORMAL MODE",
+  hard: "HARD MODE",
+  destroy: "NT-D MODE"
+};
+
   // =====================
   // 状態
   // =====================
