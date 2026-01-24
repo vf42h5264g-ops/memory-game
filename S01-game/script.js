@@ -747,7 +747,7 @@ document.addEventListener("DOMContentLoaded", () => {
           setTimeout(() => {
             launchConfetti();
             const time = ((Date.now() - startTime) / 1000).toFixed(1);
-            resultText.textContent = "SURVIVED!!";
+            resultText.textContent = "僕にはまだ帰れるところがあるんだ";
             timeText.textContent = `TIME : ${time}s`;
             setScreen("result");
           }, 250);
