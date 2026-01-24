@@ -54,6 +54,40 @@ document.addEventListener("DOMContentLoaded", () => {
   const backBtn = document.getElementById("backBtn");
   const retryBtn = document.getElementById("retryBtn");
 
+  const tipBtn = document.getElementById("tipBtn");
+  const tipModal = document.getElementById("tipModal");
+  const closeTipBtn = document.getElementById("closeTipBtn");
+  const paypayLink = document.getElementById("paypayLink");
+
+// ここにPayPayリンクを設定（リンク方式なら）
+// 例）paypay.me のURLなど
+const PAYPAY_TIP_URL = "https://qr.paypay.ne.jp/p2p01_UmHN8gFjP5JmQwzo"; // ←あなたのリンクに差し替え
+if (paypayLink) paypayLink.href = PAYPAY_TIP_URL;
+
+function openTip(){
+  ensureAudioUnlocked?.(); // あなたの関数名に合わせて（無ければ消してOK）
+  tipModal?.classList.remove("hidden");
+}
+function closeTip(){
+  tipModal?.classList.add("hidden");
+}
+
+tipBtn?.addEventListener("pointerdown", (e) => {
+  e.preventDefault();
+  openTip();
+});
+
+closeTipBtn?.addEventListener("pointerdown", (e) => {
+  e.preventDefault();
+  closeTip();
+});
+
+// 背景タップで閉じる（任意）
+tipModal?.addEventListener("pointerdown", (e) => {
+  if (e.target === tipModal) closeTip();
+});
+
+
   if (!screens.start || !screens.game || !board || !countdownEl || !missArea || !resultText || !timeText) {
     alert("HTMLのIDが合ってない可能性があります。\nboard / countdown / missArea / resultText / timeText を確認してね。");
     return;
