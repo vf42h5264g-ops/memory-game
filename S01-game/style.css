@@ -109,16 +109,6 @@ body {
   touch-action: manipulation;
 }
 
-#shotBtn{ position: absolute; left: 14px; bottom: 14px; }
-#soundBtn{ position: absolute; right: 14px; bottom: 14px; }
-
-/* 下中央：？ */
-#helpBtn{
-  position: absolute;
-  left: 50%;
-  bottom: 18px;
-  transform: translateX(-50%);
-}
 
 /* 押し込み */
 #shotBtn:active, #soundBtn:active{
@@ -357,4 +347,34 @@ button:active{
 /* 投げ銭ボタンだけ少し特別感 */
 #donateBtn {
   background: rgba(255, 215, 100, 0.18);
+}
+
+/* 下段ボタン：フッターバーで統一 */
+.footerBtns{
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: calc(14px + env(safe-area-inset-bottom)); /* iPhone対策 */
+  display: flex;
+  justify-content: space-evenly; /* 均等配置 */
+  align-items: center;
+  gap: 14px;
+  padding: 0 14px;
+  z-index: 50;
+}
+
+/* 重要：個別absolute配置を無効化して、横並びに従わせる */
+#shotBtn, #helpBtn, #donateBtn, #soundBtn{
+  position: static !important;
+  transform: none !important;
+}
+
+/* 下のテキストがボタンの上に被らないように */
+.footerText{
+  position: fixed; /* absolute でも可だが、fixedが安定 */
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: calc(14px + 52px + 18px + env(safe-area-inset-bottom));
+  z-index: 10;
+  pointer-events: none; /* ボタン操作を邪魔しない */
 }
