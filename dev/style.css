@@ -199,6 +199,37 @@ body {
   background: radial-gradient(circle at 50% 30%, rgba(180,120,255,0.35), rgba(17,17,17,1) 60%);
 }
 
+/* =========================
+   VS：手番オーバーレイ（固定）
+   ========================= */
+#turnOverlay{
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  font-size: 36px;
+  font-weight: 900;
+  letter-spacing: 0.05em;
+  color: #fff;
+
+  background: rgba(0,0,0,0.55);
+  backdrop-filter: blur(2px);
+
+  pointer-events: none; /* 操作は通す */
+  transition: opacity 120ms ease;
+}
+
+#turnOverlay.hidden{
+  opacity: 0;
+}
+
+#turnOverlay.show{
+  opacity: 1;
+}
 
 
 
