@@ -180,6 +180,24 @@ body {
   border-radius: 14px;
 }
 
+/* =========================
+   VS：勝者カラーでRESULTを染める
+   ========================= */
+#resultScreen{
+  transition: background 220ms ease;
+}
+
+#resultScreen.p1win{
+  background: radial-gradient(circle at 50% 30%, rgba(80,160,255,0.35), rgba(17,17,17,1) 60%);
+}
+
+#resultScreen.p2win{
+  background: radial-gradient(circle at 50% 30%, rgba(255,120,160,0.35), rgba(17,17,17,1) 60%);
+}
+
+#resultScreen.draw{
+  background: radial-gradient(circle at 50% 30%, rgba(180,120,255,0.35), rgba(17,17,17,1) 60%);
+}
 
 
 
