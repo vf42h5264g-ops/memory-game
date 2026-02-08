@@ -32,6 +32,9 @@ body {
   padding: 15px 40px;
   border-radius: 12px;
   font-size: 24px;
+  user-select: none;
+  cursor: pointer;
+  touch-action: manipulation;
 }
 
 #helpBtn {
@@ -39,64 +42,58 @@ body {
   bottom: 20px;
   right: 20px;
   font-size: 24px;
+  cursor: pointer;
+  user-select: none;
 }
 
 /* GAME */
-#board {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 10px;
-  width: 90vw;
-  max-width: 400px;
-}
-
-.card {
-  aspect-ratio: 1 / 1;
-}
-
-.card img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
 #countdown {
   font-size: 80px;
   margin-bottom: 20px;
 }
 
-/* RESULT */
-#resultScreen button {
-  margin: 10px;
-  padding: 12px 30px;
-  font-size: 18px;
+/* VS HUD（HTMLにある想定。無くても問題なし） */
+#vsHud {
+  width: 90vw;
+  max-width: 520px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 8px 0 10px;
+  font-weight: 700;
 }
 
+/* ===== board 共通 ===== */
 #board {
   display: grid;
   gap: 10px;
   justify-content: center;
+  width: 90vw;
+  max-width: 520px; /* VSで5列にするので少し広げる */
+  margin-top: 6px;
 }
 
-/* VSは 5列×4行 が見やすい */
+/* ソロ（EASY/NORMAL/HARD）: 正方形カード、列数はJSで変えないなら固定4列 */
+#board.solo {
+  grid-template-columns: repeat(4, 1fr);
+  max-width: 400px; /* ソロはコンパクト */
+}
+
+/* VS: 5列×4行（20枚） */
 #board.vs {
   grid-template-columns: repeat(5, minmax(52px, 72px));
 }
 
-/* 既存モードは今のままでOK。無ければ適当に */
-#board.normalGrid {
-  grid-template-columns: repeat(4, minmax(52px, 78px));
-}
-
+/* ===== card 共通 ===== */
 .card {
-  aspect-ratio: 3 / 4;
   border-radius: 10px;
-  cursor: pointer;
-  user-select: none;
   overflow: hidden;
   background: #222;
   display: grid;
   place-items: center;
+  cursor: pointer;
+  user-select: none;
+  touch-action: manipulation;
 }
 
 .card img {
@@ -106,13 +103,32 @@ body {
   display: block;
 }
 
-#vsHud {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin: 8px 0 10px;
-  font-weight: 700;
+/* ソロのカードは正方形 */
+#board.solo .card {
+  aspect-ratio: 1 / 1;
+  border-radius: 12px;
 }
+
+/* VSのカードは縦長 */
+#board.vs .card {
+  aspect-ratio: 3 / 4;
+}
+
+/* RESULT */
+#resultScreen button {
+  margin: 10px;
+  padding: 12px 30px;
+  font-size: 18px;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+/* おまけ：missAreaがあるなら最低限の余白 */
+#missArea {
+  min-height: 24px;
+  margin: 6px 0 4px;
+}
+
 
 
 
