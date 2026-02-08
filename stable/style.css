@@ -72,6 +72,48 @@ body {
   font-size: 18px;
 }
 
+#board {
+  display: grid;
+  gap: 10px;
+  justify-content: center;
+}
+
+/* VSは 5列×4行 が見やすい */
+#board.vs {
+  grid-template-columns: repeat(5, minmax(52px, 72px));
+}
+
+/* 既存モードは今のままでOK。無ければ適当に */
+#board.normalGrid {
+  grid-template-columns: repeat(4, minmax(52px, 78px));
+}
+
+.card {
+  aspect-ratio: 3 / 4;
+  border-radius: 10px;
+  cursor: pointer;
+  user-select: none;
+  overflow: hidden;
+  background: #222;
+  display: grid;
+  place-items: center;
+}
+
+.card img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+#vsHud {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 8px 0 10px;
+  font-weight: 700;
+}
+
 
 
 
