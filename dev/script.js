@@ -118,8 +118,6 @@ document.addEventListener("DOMContentLoaded", () => {
     easy:   { cards: 6,  pairs: 3,  missLimit: Infinity },
     normal: { cards: 12, pairs: 6,  missLimit: Infinity },
     hard:   { cards: 12, pairs: 6,  missLimit: 5 },
-
-    // 追加：対戦（20枚）
     vs:     { cards: 20, pairs: 10, missLimit: Infinity },
   };
 
@@ -131,10 +129,10 @@ document.addEventListener("DOMContentLoaded", () => {
   let pairCount = 3;
 
   let lockBoard = true;
-  let first = null;   // { cardEl, imgEl, name }
+  let first = null;   // ソロ用 { cardEl, imgEl, name }
   let second = null;
 
-  let matchedCount = 0;
+  let matchedCount = 0; // ソロでもVSでも「めくった一致数」判定に使う
   let missCount = 0;
   let startTime = 0;
 
@@ -142,12 +140,7 @@ document.addEventListener("DOMContentLoaded", () => {
      VS 状態
   ========================= */
   let vsState = null;
-  // vsState = {
-  //   player: 0/1,
-  //   score: [0,0],
-  //   firstPick: {cardEl,imgEl,name} or null,
-  //   matchedPairs: number
-  // }
+  // vsState = { player, score, firstPick }
 
   function isVS() {
     return mode === "vs";
@@ -206,6 +199,8 @@ document.addEventListener("DOMContentLoaded", () => {
   function startFlow() {
     resetAll();
     setScreen("game");
+
+    // VSは開始カウントで「PLAYER1ご準備」表示
     startCountdown(() => {
       setupCards();
 
@@ -231,9 +226,11 @@ document.addEventListener("DOMContentLoaded", () => {
       countdownEl.textContent = "";
     }
 
-    // boardの見た目（CSSがある想定：.vs）
+    // boardの見た目
     board.classList.remove("vs");
     board.classList.remove("solo");
+    board.classList.remove("p1turn");
+    board.classList.remove("p2turn");
 
     // VS HUDを隠す
     showVSHud(false);
@@ -256,15 +253,40 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   /* =========================
+     B: 手番テロップ（切替時）
+     - countdownEl を流用（楽＆崩れない）
+  ========================= */
+  function flashTurnBanner(text, ms = 700) {
+    if (!countdownEl) return;
+
+    countdownEl.innerHTML = `<div style="font-size:32px; font-weight:800;">${text}</div>`;
+    countdownEl.classList.remove("hidden");
+
+    setTimeout(() => {
+      countdownEl.classList.add("hidden");
+      countdownEl.textContent = "";
+    }, ms);
+  }
+
+  /* =========================
      カウントダウン（ピッ、ピッ、にゃ！）
+     - VSは「PLAYER1ご準備」付き
   ========================= */
   function startCountdown(done) {
     lockBoard = true;
 
     let count = 3;
-    countdownEl.textContent = String(count);
-    countdownEl.classList.remove("hidden");
 
+    // 初期表示
+    if (isVS()) {
+      countdownEl.innerHTML =
+        `<div style="font-size:20px; margin-bottom:10px;">PLAYER 1 ご準備下さい</div>
+         <div style="font-size:80px; line-height:1;">${count}</div>`;
+    } else {
+      countdownEl.textContent = String(count);
+    }
+
+    countdownEl.classList.remove("hidden");
     playSE("beep", 0.6);
 
     const timer = setInterval(() => {
@@ -280,7 +302,14 @@ document.addEventListener("DOMContentLoaded", () => {
         return;
       }
 
-      countdownEl.textContent = String(count);
+      if (isVS()) {
+        countdownEl.innerHTML =
+          `<div style="font-size:20px; margin-bottom:10px;">PLAYER 1 ご準備下さい</div>
+           <div style="font-size:80px; line-height:1;">${count}</div>`;
+      } else {
+        countdownEl.textContent = String(count);
+      }
+
       playSE("beep", 0.6);
     }, 1000);
   }
@@ -291,10 +320,7 @@ document.addEventListener("DOMContentLoaded", () => {
   function setupCards() {
     board.innerHTML = "";
 
-    // 列数
-    // - 6枚=3列
-    // - 12枚=4列
-    // - 20枚(VS)=5列
+    // 列数（JSで強制）
     if (cardCount === 6) {
       board.style.gridTemplateColumns = "repeat(3, 1fr)";
       board.classList.add("solo");
@@ -343,15 +369,15 @@ document.addEventListener("DOMContentLoaded", () => {
     // 既に揃ったカードは無視
     if (cardEl.classList.contains("matched")) return;
 
+    // すでに表なら無視（backじゃない）
+    if (!imgEl.src.includes("back")) return;
+
     // 同じカード連打防止（1枚目と同じ）
     if (!isVS()) {
       if (first && first.cardEl === cardEl) return;
     } else {
       if (vsState?.firstPick && vsState.firstPick.cardEl === cardEl) return;
     }
-
-    // すでに表なら無視（backじゃない）
-    if (!imgEl.src.includes("back")) return;
 
     // 表にする
     imgEl.src = `../img/${name}.jpg`;
@@ -445,25 +471,46 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   /* =========================
-     VS 初期化 & HUD
+     VS 初期化 & HUD（A）
+     - HUDの見た目切替クラス
+     - boardにも手番クラス（あればCSSで枠出せる）
   ========================= */
   function initVSState() {
     vsState = {
       player: 0,           // 0=P1, 1=P2
       score: [0, 0],
       firstPick: null,     // {cardEl,imgEl,name}
-      matchedPairs: 0
     };
+
+    // 開始時の枠/色
+    applyTurnClasses();
+  }
+
+  function applyTurnClasses() {
+    if (!vsState) return;
+
+    // HUD
+    if (vsHud) {
+      vsHud.classList.toggle("p1", vsState.player === 0);
+      vsHud.classList.toggle("p2", vsState.player === 1);
+    }
+
+    // 盤面（CSSで枠を出したい場合用）
+    board.classList.toggle("p1turn", vsState.player === 0);
+    board.classList.toggle("p2turn", vsState.player === 1);
   }
 
   function renderVSHud() {
     if (!turnText || !scoreText || !vsState) return;
+
     turnText.textContent = `手番：PLAYER ${vsState.player + 1}`;
     scoreText.textContent = `SCORE  P1:${vsState.score[0]}  /  P2:${vsState.score[1]}`;
+
+    applyTurnClasses();
   }
 
   /* =========================
-     VS タップ処理
+     VS タップ処理（A+B）
   ========================= */
   function onCardTapVS(cardEl, imgEl, name) {
     if (!vsState) return;
@@ -489,9 +536,8 @@ document.addEventListener("DOMContentLoaded", () => {
       secondPick.cardEl.classList.add("matched");
 
       vsState.score[vsState.player] += 1;
-      vsState.matchedPairs += 1;
 
-      matchedCount += 2; // 共通のクリア判定用にも増やす（20枚になったら終了）
+      matchedCount += 2;
 
       lockBoard = false;
       renderVSHud();
@@ -513,8 +559,13 @@ document.addEventListener("DOMContentLoaded", () => {
       // 手番交代
       vsState.player = 1 - vsState.player;
 
-      lockBoard = false;
+      // A: HUD/枠更新
       renderVSHud();
+
+      // B: でかテロップで強調
+      flashTurnBanner(`PLAYER ${vsState.player + 1} の番！`, 700);
+
+      lockBoard = false;
     }, 900);
   }
 
