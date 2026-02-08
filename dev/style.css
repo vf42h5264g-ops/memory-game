@@ -143,6 +143,42 @@ body {
   cursor: pointer;
 }
 
+/* =========================
+   VS：手番が一目で分かる演出（A）
+   ========================= */
+
+/* HUDの色・強調 */
+#vsHud{
+  border-radius: 12px;
+  padding: 10px 12px;
+  transition: background 150ms ease, transform 120ms ease;
+}
+
+#vsHud.p1{
+  background: rgba(80, 160, 255, 0.25); /* 青 */
+  transform: scale(1.03);
+}
+
+#vsHud.p2{
+  background: rgba(255, 120, 160, 0.25); /* ピンク */
+  transform: scale(1.03);
+}
+
+/* =========================
+   VS：盤面の枠色で手番表示（補助）
+   ========================= */
+
+#board.p1turn{
+  outline: 3px solid rgba(80,160,255,0.4);
+  outline-offset: 6px;
+  border-radius: 14px;
+}
+
+#board.p2turn{
+  outline: 3px solid rgba(255,120,160,0.4);
+  outline-offset: 6px;
+  border-radius: 14px;
+}
 
 
 
