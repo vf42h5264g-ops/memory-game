@@ -13,16 +13,18 @@
   <h1>🐾 にゃんあわせ 🐾</h1>
 
   <div class="modeBtns">
-  <div class="modeBtn" data-mode="easy">EASY</div>
-  <div class="modeBtn" data-mode="normal">NORMAL</div>
-  <div class="modeBtn" data-mode="hard">HARD</div>
+    <div class="modeBtn" data-mode="easy">EASY</div>
+    <div class="modeBtn" data-mode="normal">NORMAL</div>
+    <div class="modeBtn" data-mode="hard">HARD</div>
 
-  <!-- サウンドボタンはこれ1つだけ -->
-  <button id="soundToggle" class="soundBtn" type="button" aria-pressed="false">
-    🔇 SOUND: OFF
-  </button>
-</div>
+    <!-- 追加：対戦モード（20枚 / 2人交代） -->
+    <div class="modeBtn" data-mode="vs">VS (20枚対戦)</div>
 
+    <!-- サウンドボタンはこれ1つだけ -->
+    <button id="soundToggle" class="soundBtn" type="button" aria-pressed="false">
+      🔇 SOUND: OFF
+    </button>
+  </div>
 
   <div id="helpBtn">❓</div>
 </div>
@@ -32,12 +34,20 @@
   <h2>あそびかた</h2>
   <p>カードをめくって同じ絵をそろえよう！</p>
   <p>HARDは5回ミスでBAD END</p>
+  <p>VSは2人で交代しながら、そろえたペア数で勝負！</p>
   <button id="backFromHelp">戻る</button>
 </div>
 
 <!-- ===== GAME ===== -->
 <div id="gameScreen" class="screen hidden">
   <div id="countdown" class="hidden"></div>
+
+  <!-- 追加：VS用HUD（vs以外では hidden のまま使う想定） -->
+  <div id="vsHud" class="hidden">
+    <div id="turnText">手番：PLAYER 1</div>
+    <div id="scoreText">SCORE P1:0 / P2:0</div>
+  </div>
+
   <div id="missArea"></div>
   <div id="board"></div>
 </div>
@@ -53,6 +63,7 @@
 <script src="script.js"></script>
 </body>
 </html>
+
 
 
 
