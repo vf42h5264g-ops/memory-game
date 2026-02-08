@@ -11,6 +11,8 @@ document.addEventListener("DOMContentLoaded", () => {
   const countdownEl = document.getElementById("countdown");
   const missArea    = document.getElementById("missArea");
 
+  const turnOverlay = document.getElementById("turnOverlay");
+
   const resultText  = document.getElementById("resultText");
   const timeText    = document.getElementById("timeText");
   const retryBtn    = document.getElementById("retryBtn");
@@ -320,6 +322,20 @@ document.addEventListener("DOMContentLoaded", () => {
       playSE("beep", 0.6);
     }, 1000);
   }
+
+　　/* =========================
+　　   VS：手番オーバーレイ（盤面を動かさない）
+　　========================= */
+  function flashTurnBanner(text, ms = 700) {
+　　  if (!turnOverlay) return;
+
+ 　　 turnOverlay.textContent = text;
+　　  turnOverlay.classList.add("show");
+
+　　  setTimeout(() => {
+　　    turnOverlay.classList.remove("show");
+　　  }, ms);
+　　}
 
   /* =========================
      カード生成
