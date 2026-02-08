@@ -15,9 +15,10 @@ body {
   align-items: center;
 }
 
-.hidden {
-  display: none;
-  pointer-events: none;
+/* hidden は1回だけに統一（!importantで確実に隠す） */
+.hidden{
+  display:none !important;
+  pointer-events:none !important;
 }
 
 /* START */
@@ -32,6 +33,9 @@ body {
   padding: 15px 40px;
   border-radius: 12px;
   font-size: 24px;
+  user-select: none;
+  cursor: pointer;
+  touch-action: manipulation;
 }
 
 #helpBtn {
@@ -39,39 +43,11 @@ body {
   bottom: 20px;
   right: 20px;
   font-size: 24px;
+  cursor: pointer;
+  user-select: none;
 }
 
-/* GAME */
-#board {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 10px;
-  width: 90vw;
-  max-width: 400px;
-}
-
-.card {
-  aspect-ratio: 1 / 1;
-}
-
-.card img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-#countdown {
-  font-size: 80px;
-  margin-bottom: 20px;
-}
-
-/* RESULT */
-#resultScreen button {
-  margin: 10px;
-  padding: 12px 30px;
-  font-size: 18px;
-}
-
+/* SOUND */
 .soundBtn{
   margin-top: 16px;
   padding: 10px 16px;
@@ -87,9 +63,84 @@ body {
   transform: scale(0.98);
 }
 
-.hidden{
-  display:none !important;
-  pointer-events:none !important;
+/* GAME */
+#countdown {
+  font-size: 80px;
+  margin-bottom: 20px;
+}
+
+/* VS HUD（HTMLにある想定。無くても問題なし） */
+#vsHud{
+  width: 90vw;
+  max-width: 520px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 8px 0 10px;
+  font-weight: 700;
+}
+
+/* board 共通 */
+#board {
+  display: grid;
+  gap: 10px;
+  width: 90vw;
+  justify-content: center;
+  max-width: 520px; /* VSで5列でも崩れにくく */
+}
+
+/* JSが列数を inline style で設定するので、ここでは基本だけ。
+   ただし「ソロ」と「VS」でカード形を分けるためクラスを使う。 */
+#board.solo {
+  max-width: 400px; /* ソロはコンパクト */
+}
+
+#board.vs {
+  max-width: 520px; /* VSは少し広め */
+}
+
+/* card 共通 */
+.card {
+  border-radius: 12px;
+  overflow: hidden;
+  background: #222;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  user-select: none;
+  touch-action: manipulation;
+}
+
+.card img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* ソロ：正方形 */
+#board.solo .card {
+  aspect-ratio: 1 / 1;
+}
+
+/* VS：縦長（カードっぽく） */
+#board.vs .card {
+  aspect-ratio: 3 / 4;
+}
+
+/* HARDミス表示エリア（最低限の余白） */
+#missArea{
+  min-height: 24px;
+  margin: 6px 0 4px;
+}
+
+/* RESULT */
+#resultScreen button {
+  margin: 10px;
+  padding: 12px 30px;
+  font-size: 18px;
+  border-radius: 10px;
+  cursor: pointer;
 }
 
 
