@@ -52,6 +52,8 @@ document.addEventListener("DOMContentLoaded", () => {
     start: new Audio("../meowStart.wav"),
     clear: new Audio("../meow_long.wav"),
     miss:  new Audio("../meow_miss.wav"),
+     // 追加：手番交代SE
+    turn:  new Audio("../ping.wav"),
   };
 
   // ON/OFF状態（保存）
@@ -224,6 +226,11 @@ document.addEventListener("DOMContentLoaded", () => {
     if (countdownEl) {
       countdownEl.classList.add("hidden");
       countdownEl.textContent = "";
+    }
+
+    // RESULT 勝者カラー解除
+    if (resultScreen) {
+      resultScreen.classList.remove("p1win", "p2win", "draw");
     }
 
     // boardの見た目
@@ -559,6 +566,9 @@ document.addEventListener("DOMContentLoaded", () => {
       // 手番交代
       vsState.player = 1 - vsState.player;
 
+      // 追加：交代SE（短く控えめ）
+      playSE("turn", 0.7);
+
       // A: HUD/枠更新
       renderVSHud();
 
@@ -585,19 +595,30 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function showClearVS() {
-    const time = ((Date.now() - startTime) / 1000).toFixed(1);
+  const time = ((Date.now() - startTime) / 1000).toFixed(1);
 
-    const s1 = vsState?.score?.[0] ?? 0;
-    const s2 = vsState?.score?.[1] ?? 0;
+  const s1 = vsState?.score?.[0] ?? 0;
+  const s2 = vsState?.score?.[1] ?? 0;
 
-    let title = "";
-    if (s1 > s2) title = `PLAYER 1 の勝ち！ (${s1}-${s2})`;
-    else if (s2 > s1) title = `PLAYER 2 の勝ち！ (${s2}-${s1})`;
-    else title = `引き分け！ (${s1}-${s2})`;
+  // いったんクラスを掃除
+  if (resultScreen) resultScreen.classList.remove("p1win", "p2win", "draw");
 
-    playSE("clear", 1.0);
-    showResult(title, `TIME : ${time}s`);
+  let title = "";
+  if (s1 > s2) {
+    title = `PLAYER 1 の勝ち！ (${s1}-${s2})`;
+    if (resultScreen) resultScreen.classList.add("p1win");
+  } else if (s2 > s1) {
+    title = `PLAYER 2 の勝ち！ (${s2}-${s1})`;
+    if (resultScreen) resultScreen.classList.add("p2win");
+  } else {
+    title = `引き分け！ (${s1}-${s2})`;
+    if (resultScreen) resultScreen.classList.add("draw");
   }
+
+  playSE("clear", 1.0);
+  showResult(title, `TIME : ${time}s`);
+}
+
 
   function showBadEnd() {
     showResult("BAD END…", "");
